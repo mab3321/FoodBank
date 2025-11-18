@@ -19,10 +19,34 @@
                             <p class="text-2xl font-medium">{{ __('order.order') }}: <span
                                     class="text-heading">#{{ $order->order_code }}</span></p>
                             <div class="flex items-center gap-2 mt-1.5">
-                                <span class="text-xs capitalize h-5 leading-5 px-2 rounded-3xl text-[#FB4E4E] bg-[#FFDADA]"
-                                    title="{{ __('levels.payment_status') }}">{{ trans('payment_status.' . $order->payment_status) ?? null }}</span>
-                                <span class="text-xs capitalize h-5 leading-5 px-2 rounded-3xl text-[#F6A609] bg-[#FFEEC6]"
-                                    title="{{ __('levels.delivery') }}">{{ trans('order_status.' . $order->status) }}</span>
+                                @php
+                                    // Payment status colors
+                                    $paymentColors = [
+                                        5 => ['text' => '#22C55E', 'bg' => '#DCFCE7'], // Paid - Green
+                                        10 => ['text' => '#EF4444', 'bg' => '#FEE2E2'], // Unpaid - Red
+                                    ];
+                                    $paymentColor = $paymentColors[$order->payment_status] ?? ['text' => '#6B7280', 'bg' => '#F3F4F6'];
+                                    
+                                    // Order status colors
+                                    $statusColors = [
+                                        5 => ['text' => '#F59E0B', 'bg' => '#FEF3C7'], // Pending - Yellow
+                                        10 => ['text' => '#EF4444', 'bg' => '#FEE2E2'], // Cancel - Red
+                                        12 => ['text' => '#EF4444', 'bg' => '#FEE2E2'], // Reject - Red
+                                        14 => ['text' => '#3B82F6', 'bg' => '#DBEAFE'], // Accept - Blue
+                                        15 => ['text' => '#8B5CF6', 'bg' => '#EDE9FE'], // Process - Purple
+                                        17 => ['text' => '#F97316', 'bg' => '#FED7AA'], // On The Way - Orange
+                                        20 => ['text' => '#22C55E', 'bg' => '#DCFCE7'], // Completed - Green
+                                    ];
+                                    $statusColor = $statusColors[$order->status] ?? ['text' => '#6B7280', 'bg' => '#F3F4F6'];
+                                @endphp
+                                
+                                <span class="text-xs capitalize h-5 leading-5 px-2 rounded-3xl font-medium"
+                                    style="color: {{ $paymentColor['text'] }}; background-color: {{ $paymentColor['bg'] }}"
+                                    title="{{ __('levels.payment_status') }}">{{ trans('payment_status.' . $order->payment_status) ?? 'Unknown' }}</span>
+                                    
+                                <span class="text-xs capitalize h-5 leading-5 px-2 rounded-3xl font-medium"
+                                    style="color: {{ $statusColor['text'] }}; background-color: {{ $statusColor['bg'] }}"
+                                    title="{{ __('levels.delivery') }}">{{ trans('order_status.' . $order->status) ?? 'Unknown Status' }}</span>
                             </div>
                         </div>
                         <ul class="flex flex-col gap-2">
@@ -96,35 +120,76 @@
                                     </svg>
                                     <span class="text-sm capitalize text-white">{{ __('order.accept') }}</span>
                                 </a>
-                            @elseif (auth()->user()->myRole == App\Enums\UserRole::RESTAURANTOWNER && $order->status == App\Enums\OrderStatus::ACCEPT)
+                            @elseif (auth()->user()->myRole == App\Enums\UserRole::RESTAURANTOWNER)
+                                @php
+                                    $allowedStatuses = [];
+                                    // Restaurant owners can change to all valid statuses
+                                    $statusOptions = [
+                                        App\Enums\OrderStatus::PENDING => __('order.pending'),
+                                        App\Enums\OrderStatus::CANCEL => __('order.cancel'), 
+                                        App\Enums\OrderStatus::REJECT => __('order.reject'),
+                                        App\Enums\OrderStatus::ACCEPT => __('order.accept'),
+                                        App\Enums\OrderStatus::PROCESS => __('order.process'),
+                                        App\Enums\OrderStatus::ON_THE_WAY => __('order.on_the_way'),
+                                        App\Enums\OrderStatus::COMPLETED => __('order.completed')
+                                    ];
+                                    // Remove current status from options
+                                    unset($statusOptions[$order->status]);
+                                @endphp
                                 
-                                <div class="relative cursor-pointer">
-                                    <select id="orderStatus" data-id="{{ $order->id }}" data-url="/admin/order/change-status/" class="text-sm cursor-pointer capitalize appearance-none pl-4 pr-10 h-[38px] rounded border border-primary bg-white text-primary">
-                                        <option value="">{{ trans('order_status.' . $order->status) }}</option>
-                                        <option value="{{ App\Enums\OrderStatus::PROCESS }}">{{ __('order.process') }}</option>
-                                    </select>
-                                    <i class="fa-solid fa-chevron-down cursor-pointer absolute top-1/2 right-3.5 -translate-y-1/2 text-xs text-primary"></i>
+                                <div class="flex gap-3 items-center">
+                                    <div class="relative cursor-pointer">
+                                        <select class="orderStatusDropdown text-sm cursor-pointer capitalize appearance-none pl-4 pr-10 h-[38px] rounded border border-primary bg-white text-primary" data-id="{{ $order->id }}" data-base-url="{{ url('/') }}/admin/order/change-status">
+                                            <option value="">{{ trans('order_status.' . $order->status) }} - Change Status</option>
+                                            @foreach($statusOptions as $statusCode => $statusName)
+                                                <option value="{{ $statusCode }}">{{ $statusName }}</option>
+                                            @endforeach
+                                        </select>
+                                        <i class="fa-solid fa-chevron-down cursor-pointer absolute top-1/2 right-3.5 -translate-y-1/2 text-xs text-primary"></i>
+                                    </div>
+                                    <button class="submitStatusChange bg-primary text-white px-4 py-2 rounded text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                                            data-target=".orderStatusDropdown" 
+                                            disabled>
+                                        <i class="fa-solid fa-check mr-1"></i>
+                                        Update Status
+                                    </button>
                                 </div>
                                 
-                            @elseif ( (auth()->user()->myRole == App\Enums\UserRole::DELIVERYBOY && $order->status == App\Enums\OrderStatus::ON_THE_WAY) || ( auth()->user()->myRole == App\Enums\UserRole::RESTAURANTOWNER && $order->order_type == App\Enums\OrderTypeStatus::PICKUP && $order->status == App\Enums\OrderStatus::PROCESS) )
-
-                                <div class="relative cursor-pointer">
-                                    <select id="orderStatus" data-id="{{ $order->id }}" data-url="/admin/order/change-status/" class="text-sm cursor-pointer capitalize appearance-none pl-4 pr-10 h-[38px] rounded border border-primary bg-white text-primary">
-                                        <option value="">{{ trans('order_status.' . $order->status) }}</option>
-                                        <option value="{{ App\Enums\OrderStatus::COMPLETED }}">{{ __('order.completed') }}</option>
-                                    </select>
-                                    <i class="fa-solid fa-chevron-down cursor-pointer absolute top-1/2 right-3.5 -translate-y-1/2 text-xs text-primary"></i>
+                            @elseif (auth()->user()->myRole == App\Enums\UserRole::DELIVERYBOY && $order->status == App\Enums\OrderStatus::ON_THE_WAY)
+                                {{-- Delivery Boy can only mark ON_THE_WAY orders as COMPLETED --}}
+                                <div class="flex gap-3 items-center">
+                                    <div class="relative cursor-pointer">
+                                        <select class="orderStatusDropdown text-sm cursor-pointer capitalize appearance-none pl-4 pr-10 h-[38px] rounded border border-primary bg-white text-primary" data-id="{{ $order->id }}" data-base-url="{{ url('/') }}/admin/order/change-status">
+                                            <option value="">{{ trans('order_status.' . $order->status) }}</option>
+                                            <option value="{{ App\Enums\OrderStatus::COMPLETED }}">{{ __('order.completed') }}</option>
+                                        </select>
+                                        <i class="fa-solid fa-chevron-down cursor-pointer absolute top-1/2 right-3.5 -translate-y-1/2 text-xs text-primary"></i>
+                                    </div>
+                                    <button class="submitStatusChange bg-primary text-white px-4 py-2 rounded text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                                            data-target=".orderStatusDropdown" 
+                                            disabled>
+                                        <i class="fa-solid fa-check mr-1"></i>
+                                        Update Status
+                                    </button>
                                 </div>
 
                             @elseif (auth()->user()->myRole == App\Enums\UserRole::DELIVERYBOY && $order->status == App\Enums\OrderStatus::PROCESS)
 
-                                <div class="relative cursor-pointer">
-                                    <select id="orderStatus" data-id="{{ $order->id }}" data-url="/admin/orders/product-receive/" class="text-sm cursor-pointer capitalize appearance-none pl-4 pr-10 h-[38px] rounded border border-primary bg-white text-primary">
-                                        <option value="">{{ trans('order_status.' . $order->status) }}</option>
-                                        <option value="10">{{ __('order.not_receive') }}</option>
-                                        <option value="5">{{ __('order.receive') }}</option>
-                                    </select>
-                                    <i class="fa-solid fa-chevron-down cursor-pointer absolute top-1/2 right-3.5 -translate-y-1/2 text-xs text-primary"></i>
+                                <div class="flex gap-3 items-center">
+                                    <div class="relative cursor-pointer">
+                                        <select class="deliveryStatusDropdown text-sm cursor-pointer capitalize appearance-none pl-4 pr-10 h-[38px] rounded border border-primary bg-white text-primary" data-id="{{ $order->id }}" data-base-url="{{ url('/') }}/admin/orders/product-receive">
+                                            <option value="">{{ trans('order_status.' . $order->status) }}</option>
+                                            <option value="10">{{ __('order.not_receive') }}</option>
+                                            <option value="5">{{ __('order.receive') }}</option>
+                                        </select>
+                                        <i class="fa-solid fa-chevron-down cursor-pointer absolute top-1/2 right-3.5 -translate-y-1/2 text-xs text-primary"></i>
+                                    </div>
+                                    <button class="submitDeliveryChange bg-primary text-white px-4 py-2 rounded text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                                            data-target=".deliveryStatusDropdown" 
+                                            disabled>
+                                        <i class="fa-solid fa-truck mr-1"></i>
+                                        Update Delivery
+                                    </button>
                                 </div>    
                             @endif
 
@@ -145,6 +210,87 @@
                 </div>
             </div>
         </div>
+        
+        {{-- Enhanced Restaurant Order Management Panel --}}
+        @if (auth()->user()->myRole == App\Enums\UserRole::RESTAURANTOWNER || auth()->user()->myRole == App\Enums\UserRole::ADMIN)
+        <div class="col-12">
+            <div class="db-card mb-4">
+                <div class="db-card-header">
+                    <h3 class="db-card-title">🍽️ Order Status Management</h3>
+                </div>
+                <div class="db-card-body">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {{-- Current Status Display --}}
+                        <div class="col-span-full mb-4">
+                            <div class="flex items-center gap-3">
+                                <h4 class="text-lg font-semibold">Current Status:</h4>
+                                <span class="badge px-3 py-1 rounded-full text-white
+                                    @if($order->status == 5) bg-gray-500
+                                    @elseif($order->status == 10 || $order->status == 12) bg-red-500
+                                    @elseif($order->status == 14) bg-green-500
+                                    @elseif($order->status == 15) bg-blue-500
+                                    @elseif($order->status == 17) bg-yellow-500
+                                    @elseif($order->status == 20) bg-green-600
+                                    @endif">
+                                    {{ trans('order_status.' . $order->status) }}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        {{-- Quick Action Buttons --}}
+                        @if($order->status == App\Enums\OrderStatus::PENDING)
+                            <a href="{{ route('admin.order.change-status', [$order->id, App\Enums\OrderStatus::ACCEPT]) }}" 
+                               class="btn bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
+                               onclick="return confirm('Accept this order?')">
+                                <i class="fas fa-check mr-2"></i>Accept Order
+                            </a>
+                            <a href="{{ route('admin.order.change-status', [$order->id, App\Enums\OrderStatus::REJECT]) }}" 
+                               class="btn bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+                               onclick="return confirm('Reject this order?')">
+                                <i class="fas fa-times mr-2"></i>Reject Order
+                            </a>
+                        @elseif($order->status == App\Enums\OrderStatus::ACCEPT)
+                            <a href="{{ route('admin.order.change-status', [$order->id, App\Enums\OrderStatus::PROCESS]) }}" 
+                               class="btn bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+                               onclick="return confirm('Start processing this order?')">
+                                <i class="fas fa-cog mr-2"></i>Start Processing
+                            </a>
+                        @elseif($order->status == App\Enums\OrderStatus::PROCESS)
+                            @if($order->order_type == App\Enums\OrderTypeStatus::PICKUP)
+                                <a href="{{ route('admin.order.change-status', [$order->id, App\Enums\OrderStatus::COMPLETED]) }}" 
+                                   class="btn bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+                                   onclick="return confirm('Mark as completed?')">
+                                    <i class="fas fa-check-circle mr-2"></i>Complete (Pickup)
+                                </a>
+                            @else
+                                <a href="{{ route('admin.order.change-status', [$order->id, App\Enums\OrderStatus::ON_THE_WAY]) }}" 
+                                   class="btn bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition-colors"
+                                   onclick="return confirm('Send for delivery?')">
+                                    <i class="fas fa-truck mr-2"></i>Send for Delivery
+                                </a>
+                            @endif
+                        @elseif($order->status == App\Enums\OrderStatus::ON_THE_WAY)
+                            <a href="{{ route('admin.order.change-status', [$order->id, App\Enums\OrderStatus::COMPLETED]) }}" 
+                               class="btn bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+                               onclick="return confirm('Mark as delivered?')">
+                                <i class="fas fa-check-circle mr-2"></i>Mark Delivered
+                            </a>
+                        @endif
+                        
+                        {{-- Cancel option (always available) --}}
+                        @if(!in_array($order->status, [App\Enums\OrderStatus::COMPLETED, App\Enums\OrderStatus::CANCEL]))
+                            <a href="{{ route('admin.order.change-status', [$order->id, App\Enums\OrderStatus::CANCEL]) }}" 
+                               class="btn bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+                               onclick="return confirm('Cancel this order?')">
+                                <i class="fas fa-ban mr-2"></i>Cancel Order
+                            </a>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+        
         <div class="col-12 sm:col-6">
             <div class="db-card">
                 <div class="db-card-header">
@@ -511,24 +657,87 @@
     <script ></script>
     <script>
 
-        $('#orderStatus').on('change', function() {
-            let orderId = $(this).data('id');
-            let path = $(this).data('url');
-            let status = $(this).val();
-            let url = "{{$baseUrl}}" + path + orderId + "/" + status;
+        // Enable/disable submit button when dropdown selection changes
+        $('.orderStatusDropdown, .deliveryStatusDropdown').on('change', function() {
+            let dropdown = $(this);
+            let selectedValue = dropdown.val();
+            let submitButton = dropdown.closest('.flex').find('button');
+            
+            if (selectedValue && selectedValue !== '') {
+                submitButton.prop('disabled', false);
+                console.log('Status selected:', selectedValue, '- Submit button enabled');
+            } else {
+                submitButton.prop('disabled', true);
+                console.log('No status selected - Submit button disabled');
+            }
+        });
+
+        // Handle order status submission for restaurant owners
+        $('.submitStatusChange').on('click', function() {
+            let button = $(this);
+            let dropdown = button.closest('.flex').find('.orderStatusDropdown');
+            let orderId = dropdown.data('id');
+            let baseUrl = dropdown.data('base-url');
+            let status = dropdown.val();
+            let url = baseUrl + '/' + orderId + '/' + status;
             
             if (status) {
+                button.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin mr-1"></i>Updating...');
+                console.log('Submitting order status change to:', status, 'URL:', url);
+                
                 $.ajax({
                     url: url,
                     type: 'GET',
                     success: function(response) {
-                        location.reload();
+                        console.log('Status changed successfully');
+                        button.html('<i class="fa-solid fa-check mr-1"></i>Success!');
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1000);
+                    },
+                    error: function(xhr, status, error) {
+                        console.log('Error changing status:', error);
+                        button.prop('disabled', false).html('<i class="fa-solid fa-check mr-1"></i>Update Status');
+                        alert('Error changing order status. Please try again.');
                     }
                 });
             } else {
-                console.log('Something went wrong!');
+                alert('Please select a status first.');
             }
+        });
+
+        // Handle delivery status submission for delivery boys
+        $('.submitDeliveryChange').on('click', function() {
+            let button = $(this);
+            let dropdown = button.closest('.flex').find('.deliveryStatusDropdown');
+            let orderId = dropdown.data('id');
+            let baseUrl = dropdown.data('base-url');
+            let status = dropdown.val();
+            let url = baseUrl + '/' + orderId + '/' + status;
             
+            if (status) {
+                button.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin mr-1"></i>Updating...');
+                console.log('Submitting delivery status change to:', status, 'URL:', url);
+                
+                $.ajax({
+                    url: url,
+                    type: 'GET',
+                    success: function(response) {
+                        console.log('Delivery status changed successfully');
+                        button.html('<i class="fa-solid fa-check mr-1"></i>Success!');
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1000);
+                    },
+                    error: function(xhr, status, error) {
+                        console.log('Error changing delivery status:', error);
+                        button.prop('disabled', false).html('<i class="fa-solid fa-truck mr-1"></i>Update Delivery');
+                        alert('Error changing delivery status. Please try again.');
+                    }
+                });
+            } else {
+                alert('Please select a status first.');
+            }
         });
 
     </script>

@@ -19,6 +19,7 @@ use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\OrderLineItem;
 use Yajra\DataTables\DataTables;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Permission\Models\Role;
 use App\Http\Requests\OrderRequest;
 use App\Http\Services\OrderService;
@@ -119,20 +120,20 @@ class OrderController extends BackendController
                     $deliveryBoyWeb = User::role($role->name)->whereNotNull('web_token')->get();
                     if (!blank($deliveryBoy)) {
                         foreach ($deliveryBoy as $delivery) {
-                            app(PushNotificationService::class)->sendNotificationOrderUpdate($order, $delivery,'deliveryboy');
+                            app(PushNotificationService::class)->sendNotificationOrderUpdate($order, $delivery, 'deliveryboy');
                         }
                     }
                     if (!blank($deliveryBoyWeb)) {
                         foreach ($deliveryBoyWeb as $deliveryweb) {
-                            app(PushNotificationService::class)->sendNotificationOrderUpdate($order, $deliveryweb,'deliveryboy');
+                            app(PushNotificationService::class)->sendNotificationOrderUpdate($order, $deliveryweb, 'deliveryboy');
                         }
                     }
                 } else {
                     if (!blank($order->delivery_boy_id)) {
-                        app(PushNotificationService::class)->sendNotificationOrderUpdate($order, $order->delivery,'deliveryboy');
+                        app(PushNotificationService::class)->sendNotificationOrderUpdate($order, $order->delivery, 'deliveryboy');
                     }
                 }
-                app(PushNotificationService::class)->sendNotificationOrderUpdate($order, $order->user,'customer');
+                app(PushNotificationService::class)->sendNotificationOrderUpdate($order, $order->user, 'customer');
             } catch (\Exception $e) {
             }
             return redirect(route('admin.orders.index'))->withSuccess('Order successfully updated');
@@ -179,7 +180,7 @@ class OrderController extends BackendController
     public function getOrder(Request $request)
     {
         if (request()->ajax()) {
-            if ( !empty($request->status) || !empty($request->code) || !empty($request->orderType || !empty($request->startDate)) ) {
+            if (!empty($request->status) || !empty($request->code) || !empty($request->orderType || !empty($request->startDate))) {
                 $startDate = $request->startDate;
                 $endDate   = $request->endDate;
                 $orderType = $request->orderType;
@@ -196,7 +197,7 @@ class OrderController extends BackendController
                         $query->where('status', $status);
                     }
                     if (!blank($code)) {
-                        $query->where('misc->order_code', 'like', '%'.$code.'%');
+                        $query->where('misc->order_code', 'like', '%' . $code . '%');
                     }
                     if (!blank($orderType)) {
                         $query->where('order_type', $orderType);
@@ -257,9 +258,9 @@ class OrderController extends BackendController
             return Datatables::of($orderArray)
                 ->addColumn('action', function ($order) {
                     $retAction = [];
-                    $retAction['view'] = ['route' => route('admin.orders.show', $order),'permission' => 'orders_show'];
+                    $retAction['view'] = ['route' => route('admin.orders.show', $order), 'permission' => 'orders_show'];
                     if ($order->delivery_boy_id && auth()->user()->id != $order->delivery_boy_id) {
-                        $retAction['delivery'] = ['route' => route('admin.orders.delivery', $order),'permission' => 'orders_show'];
+                        $retAction['delivery'] = ['route' => route('admin.orders.delivery', $order), 'permission' => 'orders_show'];
                     }
                     return action_button($retAction);
                 })
@@ -279,7 +280,21 @@ class OrderController extends BackendController
                     return currencyFormat($order->total);
                 })
                 ->editColumn('status', function ($order) {
-                    return trans($order->statusName);
+                    $statusHtml = '<span class="badge ' . $order['statusColor'] . '">' . trans($order->statusName) . '</span>';
+
+                    // Add status change dropdown for restaurant owners and admins
+                    if ($order['statusData'] && !empty($order['drop'])) {
+                        $statusHtml .= '<div class="dropdown d-inline-block ml-2">
+                            <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Change Status
+                            </button>
+                            <div class="dropdown-menu">
+                                ' . $order['drop'] . '
+                            </div>
+                        </div>';
+                    }
+
+                    return $statusHtml;
                 })
                 ->editColumn('id', function ($order) {
                     return $order->setID;
@@ -293,19 +308,20 @@ class OrderController extends BackendController
         $myRole      = auth()->user()->myrole;
         $allowStatus = [];
 
-        if ($myRole == 2) {
+        if ($myRole == 2) { // Customer
             $allowStatus = [OrderStatus::CANCEL];
-        } else if ($myRole == 3) {
-            if ($order->status == OrderStatus::PENDING) {
-                $allowStatus = [OrderStatus::ACCEPT, OrderStatus::REJECT];
-            } elseif ($order->status == OrderStatus::ACCEPT) {
-                if($order->order_type == OrderTypeStatus::PICKUP){
-                    $allowStatus = [OrderStatus::COMPLETED];
-                }else {
-                    $allowStatus = [OrderStatus::PROCESS];
-                }
-            }
-        } else if ($myRole == 4) {
+        } else if ($myRole == 3) { // Restaurant Owner - Enhanced with full control
+            // Restaurant owners can now update orders to all valid statuses
+            $allowStatus = [
+                OrderStatus::PENDING,
+                OrderStatus::CANCEL,
+                OrderStatus::REJECT,
+                OrderStatus::ACCEPT,
+                OrderStatus::PROCESS,
+                OrderStatus::ON_THE_WAY,
+                OrderStatus::COMPLETED
+            ];
+        } else if ($myRole == 4) { // Delivery Boy
             if ($order->status == OrderStatus::PROCESS) {
                 $allowStatus = [];
             } elseif ($order->status == OrderStatus::ON_THE_WAY) {
@@ -315,13 +331,26 @@ class OrderController extends BackendController
             } else {
                 $allowStatus = [OrderStatus::ON_THE_WAY, OrderStatus::COMPLETED];
             }
+        } else if ($myRole == 1) { // Admin - Full control
+            $allowStatus = [
+                OrderStatus::PENDING,
+                OrderStatus::CANCEL,
+                OrderStatus::REJECT,
+                OrderStatus::ACCEPT,
+                OrderStatus::PROCESS,
+                OrderStatus::ON_THE_WAY,
+                OrderStatus::COMPLETED
+            ];
         }
 
         $orderStatusArray = [];
         if (!blank($allowStatus)) {
             foreach (trans('order_status') as $key => $status) {
                 if (in_array($key, $allowStatus)) {
-                    $orderStatusArray[$key] = $status;
+                    // Only show statuses that are different from current status
+                    if ($key != $order->status) {
+                        $orderStatusArray[$key] = $status;
+                    }
                 }
             }
         }
@@ -384,21 +413,22 @@ class OrderController extends BackendController
                     $deliveryBoyWeb = User::role($role->name)->whereNotNull('web_token')->get();
                     if (!blank($deliveryBoy)) {
                         foreach ($deliveryBoy as $delivery) {
-                            app(PushNotificationService::class)->sendNotificationOrderUpdate($order, $delivery,'deliveryboy');
+                            app(PushNotificationService::class)->sendNotificationOrderUpdate($order, $delivery, 'deliveryboy');
                         }
                     }
                     if (!blank($deliveryBoyWeb)) {
                         foreach ($deliveryBoyWeb as $deliveryweb) {
-                            app(PushNotificationService::class)->sendNotificationOrderUpdate($order, $deliveryweb,'deliveryboy');
+                            app(PushNotificationService::class)->sendNotificationOrderUpdate($order, $deliveryweb, 'deliveryboy');
                         }
                     }
                 } else {
                     if (!blank($order->delivery_boy_id)) {
-                        app(PushNotificationService::class)->sendNotificationOrderUpdate($order, $order->delivery,'deliveryboy');
+                        app(PushNotificationService::class)->sendNotificationOrderUpdate($order, $order->delivery, 'deliveryboy');
                     }
                 }
-                app(PushNotificationService::class)->sendNotificationOrderUpdate($order, $order->user,'customer');
-            } catch (\Exception $e) {}
+                app(PushNotificationService::class)->sendNotificationOrderUpdate($order, $order->user, 'customer');
+            } catch (\Exception $e) {
+            }
             return redirect()->back()->withSuccess('Order successfully updated');
         } else {
             return redirect()->back()->withError($orderService->message);

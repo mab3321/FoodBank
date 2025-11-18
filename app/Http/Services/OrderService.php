@@ -180,11 +180,35 @@ class OrderService
         return ResponseService::response();
     }
 
+    public function onTheWay(int $orderId) // New method for ON_THE_WAY status
+    {
+        $order = Order::findOrFail($orderId);
+        if (!blank($order)) {
+            // Allow changing to ON_THE_WAY from any status (for restaurant owners)
+            $order->status = OrderStatus::ON_THE_WAY;
+            $order->save();
+            $orderHistory = $this->status($orderId, OrderStatus::ON_THE_WAY);
+            if ($orderHistory->status) {
+                ResponseService::set(['order_history_id' => $orderHistory->order_history_id]);
+            }
+            ResponseService::set([
+                'status'   => true,
+                'order_id' => $orderId,
+            ]);
+        } else {
+            ResponseService::set([
+                'status'  => false,
+                'message' => 'Order not found',
+            ]);
+        }
+        return ResponseService::response();
+    }
+
     public function completed(int $orderId) //done
     {
         $order = Order::orderowner()->findOrFail($orderId);
         if (!blank($order)) {
-            if($order->order_type == OrderTypeStatus::DELIVERY){
+            if ($order->order_type == OrderTypeStatus::DELIVERY) {
                 if ($order->payment_method == PaymentMethod::CASH_ON_DELIVERY && $order->payment_status == PaymentStatus::UNPAID) {
                     $addFund = app(TransactionService::class)->addFund(0, $order->user->balance_id, PaymentMethod::CASH_ON_DELIVERY, $order->total, $orderId);
                     if ($addFund->status) {
@@ -241,8 +265,7 @@ class OrderService
                         ]);
                     }
                 }
-
-            }elseif($order->order_type == OrderTypeStatus::PICKUP) {
+            } elseif ($order->order_type == OrderTypeStatus::PICKUP) {
 
                 if ($order->payment_method == PaymentMethod::CASH_ON_DELIVERY && $order->payment_status == PaymentStatus::UNPAID) {
                     $addFund = app(TransactionService::class)->addFund(0, $order->user->balance_id, PaymentMethod::CASH_ON_DELIVERY, $order->total, $orderId);
@@ -270,7 +293,6 @@ class OrderService
                     $amount              = ($order->sub_total - ($order->sub_total / 100) * $this->commission);
                     $transfer            = app(TransactionService::class)->transfer($this->adminBalanceId, $restaurantBalanceId, $amount, $orderId);
                 }
-
             }
 
 
@@ -430,14 +452,14 @@ class OrderService
                 ]);
             }
         } else {
-            if($data['address'] == ''){
+            if ($data['address'] == '') {
                 $latitude = 0.0;
                 $longitude = 0.0;
                 $address = json_encode([
                     'address' => '',
                     'apartment' => ''
                 ]);
-            }else {
+            } else {
                 $address = Address::find($data['address']);
                 $latitude = $address->latitude;
                 $longitude = $address->longitude;
@@ -474,7 +496,7 @@ class OrderService
             'previous_status' => null,
             'current_status'  => OrderStatus::PENDING,
         ]);
- 
+
         if (!blank($data['coupon_id'])) {
             Discount::create([
                 'order_id'  => $orderId,
@@ -554,6 +576,8 @@ class OrderService
             $orderStatus = $this->cancel($orderId);
         } elseif ($status == OrderStatus::PROCESS) {
             $orderStatus = $this->process($orderId);
+        } elseif ($status == OrderStatus::ON_THE_WAY) {
+            $orderStatus = $this->onTheWay($orderId);
         } elseif ($status == OrderStatus::COMPLETED) {
             $orderStatus = $this->completed($orderId);
         }
