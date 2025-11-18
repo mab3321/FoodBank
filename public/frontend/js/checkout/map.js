@@ -1,17 +1,36 @@
 function initMap() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function (position) {
-            if (lastAddress) {
-                initAutocomplete();
-                getLatLongPosition(lastAddress_latitude, lastAddress_longitude);
-            } else {
-                initAutocomplete();
-                getLatLongPosition(position.coords.latitude, position.coords.longitude);
-            }
-
-        });
-    } else {
-        alert("Sorry, your browser does not support HTML5 geolocation.");
+    try {
+        console.log('Debug: Initializing Google Maps');
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function (position) {
+                    console.log('Debug: Geolocation success');
+                    if (lastAddress) {
+                        console.log('Debug: Using last address');
+                        initAutocomplete();
+                        getLatLongPosition(lastAddress_latitude, lastAddress_longitude);
+                    } else {
+                        console.log('Debug: Using current position');
+                        initAutocomplete();
+                        getLatLongPosition(position.coords.latitude, position.coords.longitude);
+                    }
+                },
+                function (error) {
+                    console.error('Debug: Geolocation error:', error);
+                    // Fallback to default location if geolocation fails
+                    initAutocomplete();
+                    getLatLongPosition(23.8103, 90.4125); // Default coordinates
+                }
+            );
+        } else {
+            console.warn('Debug: Geolocation not supported');
+            alert("Sorry, your browser does not support HTML5 geolocation.");
+            // Fallback initialization
+            initAutocomplete();
+            getLatLongPosition(23.8103, 90.4125);
+        }
+    } catch (error) {
+        console.error('Debug: Error in initMap:', error);
     }
 }
 
@@ -140,34 +159,54 @@ var mapLat = mapLat;
 var mapLong = mapLong;
 
 function initAutocomplete() {
-    if (lastAddress) {
-        getLocation(lastAddress_latitude, lastAddress_longitude);
-    } else {
-        if (mapLat != '' && mapLong != '') {
-            getLocation(mapLat, mapLong);
+    try {
+        console.log('Debug: Initializing autocomplete');
+        
+        if (lastAddress) {
+            getLocation(lastAddress_latitude, lastAddress_longitude);
         } else {
-            getLocation(null, null);
+            if (typeof mapLat !== 'undefined' && typeof mapLong !== 'undefined' && mapLat != '' && mapLong != '') {
+                getLocation(mapLat, mapLong);
+            } else {
+                getLocation(null, null);
+            }
         }
-    }
 
-    var input = document.getElementById('autocomplete-input');
-    var autocomplete = new google.maps.places.Autocomplete(input);
-
-    autocomplete.addListener('place_changed', function () {
-        var place = autocomplete.getPlace();
-        getLatLongPosition(place.geometry.location.lat(), place.geometry.location.lng());
-        $('#lat').val(place.geometry.location.lat());
-        $('#long').val(place.geometry.location.lng());
-
-        if (!place.geometry) {
+        var input = document.getElementById('autocomplete-input');
+        if (!input) {
+            console.warn('Debug: Autocomplete input not found');
             return;
         }
-    });
+        
+        var autocomplete = new google.maps.places.Autocomplete(input);
 
-    if ($('.modalAddressSearch')[0]) {
-        setTimeout(function () {
-            $(".pac-container").prependTo("#autocomplete-container");
-        }, 300);
+        autocomplete.addListener('place_changed', function () {
+            try {
+                var place = autocomplete.getPlace();
+                if (place && place.geometry) {
+                    console.log('Debug: Place selected:', place.formatted_address);
+                    getLatLongPosition(place.geometry.location.lat(), place.geometry.location.lng());
+                    $('#lat').val(place.geometry.location.lat());
+                    $('#long').val(place.geometry.location.lng());
+                } else {
+                    console.warn('Debug: Place has no geometry');
+                }
+            } catch (error) {
+                console.error('Debug: Error in place_changed:', error);
+            }
+        });
+
+        if ($('.modalAddressSearch')[0]) {
+            setTimeout(function () {
+                try {
+                    $(".pac-container").prependTo("#autocomplete-container");
+                } catch (error) {
+                    console.error('Debug: Error moving pac-container:', error);
+                }
+            }, 300);
+        }
+    } catch (error) {
+        console.error('Debug: Error in initAutocomplete:', error);
     }
 }
 var geocoder;

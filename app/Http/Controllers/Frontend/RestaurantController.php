@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Redirect;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use App\Http\Controllers\FrontendController;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class RestaurantController extends FrontendController
 {
@@ -104,7 +105,6 @@ class RestaurantController extends FrontendController
 
             if (!blank($data)) {
                 $this->data['vouchers']         = pluck($data, 'obj', 'restaurant_id');
-
             }
         }
     }
@@ -120,27 +120,42 @@ class RestaurantController extends FrontendController
     private function qrCode()
     {
         if ($this->restaurant) {
-            $image = QrCode::size(480)->format('png')->margin(1)->encoding('UTF-8');
+            try {
+                // Force QR code to use GD backend instead of Imagick to avoid extension issues
+                $image = QrCode::format('svg')->size(480)->margin(1)->encoding('UTF-8');
 
-            if (isset($this->restaurant->qrCode)) {
-                $colors = isset($this->restaurant->qrCode->color) ? explode(",", $this->restaurant->qrCode->color) : [0, 0, 0];
-                $bgColors = isset($this->restaurant->qrCode->background_color) ? explode(",", $this->restaurant->qrCode->background_color) : [255, 255, 255];
+                if (isset($this->restaurant->qrCode)) {
+                    $colors = isset($this->restaurant->qrCode->color) ? explode(",", $this->restaurant->qrCode->color) : [0, 0, 0];
+                    $bgColors = isset($this->restaurant->qrCode->background_color) ? explode(",", $this->restaurant->qrCode->background_color) : [255, 255, 255];
 
-                $image = $image
-                    ->style($this->restaurant->qrCode->style ?? 'square')
-                    ->eye($this->restaurant->qrCode->eye_style ?? 'square')
-                    ->color(intval($colors[0]), intval($colors[1]), intval($colors[2]))
-                    ->backgroundColor(intval($bgColors[0]), intval($bgColors[1]), intval($bgColors[2]));
+                    $image = $image
+                        ->style($this->restaurant->qrCode->style ?? 'square')
+                        ->eye($this->restaurant->qrCode->eye_style ?? 'square')
+                        ->color(intval($colors[0]), intval($colors[1]), intval($colors[2]))
+                        ->backgroundColor(intval($bgColors[0]), intval($bgColors[1]), intval($bgColors[2]));
 
-                if ($this->restaurant->qrCode->mode == 'logo' && !blank($this->restaurant->qrCode->qrcode_logo)) {
-                    $path = $this->filepond->getPathFromServerId($this->restaurant->qrCode->qrcode_logo);
-                    $image = $image->merge($path, .2, true);
+                    // Skip logo merge for SVG format to avoid imagick issues
+                    // Logo feature can be re-enabled once imagick issues are resolved
+                }
+
+                $qrCodeContent = $image->generate(route('restaurant.show', $this->restaurant->slug));
+                return base64_encode($qrCodeContent);
+            } catch (\Exception $e) {
+                // Log the error and return a simple fallback QR code
+                Log::warning('QR Code generation failed: ' . $e->getMessage());
+
+                // Generate simple QR code without custom styling
+                try {
+                    $fallbackQr = QrCode::format('svg')->size(480)->generate(route('restaurant.show', $this->restaurant->slug));
+                    return base64_encode($fallbackQr);
+                } catch (\Exception $fallbackError) {
+                    // If even the fallback fails, return null
+                    Log::error('QR Code fallback generation failed: ' . $fallbackError->getMessage());
+                    return null;
                 }
             }
-
-            $image = $image->generate(route('restaurant.show', $this->restaurant->slug));
-            return base64_encode($image);
         }
+        return null;
     }
 
     public function Ratings(RatingsRequest $request)
@@ -166,5 +181,4 @@ class RestaurantController extends FrontendController
             return Redirect::back()->withSuccess('The Data Inserted Successfully');
         }
     }
-
 }

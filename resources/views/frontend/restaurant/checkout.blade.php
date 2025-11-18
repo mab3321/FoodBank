@@ -178,9 +178,10 @@
                             <div class="form-group">
                                 <label class="form-label required">{{ __('frontend.phone_number') }}</label>
                                 <input class="form-control mobilenumber @error('mobile') is-invalid @enderror phone"
-                                    type="tel" id="number" name="mobile" onkeypress='validate(event)'>
-                                <input type="hidden" id="code" name="countrycode" value="1">
-                                <input type="hidden" id="code_name" name="countrycodename" value="us">
+                                    type="tel" id="number" name="mobile" onkeypress='validate(event)' 
+                                    value="{{ old('mobile') }}" autocomplete="tel">
+                                <input type="hidden" id="code" name="countrycode" value="{{ old('countrycode', '1') }}">
+                                <input type="hidden" id="code_name" name="countrycodename" value="{{ old('countrycodename', 'us') }}">
 
                                 @error('mobile')
                                     <div class="invalid-feedback d-block">
@@ -504,4 +505,42 @@
     <script src="https://js.stripe.com/v3/"></script>
     <script src="{{ asset('frontend/js/checkout/stripe.js') }}"></script>
     <script src="{{ asset('frontend/js/image-upload.js') }}"></script>
+    <script src="{{ asset('frontend/js/checkout/debug-checkout.js') }}"></script>
+    <script>
+        // Prevent form field clearing on validation errors
+        $(document).ready(function() {
+            // Store form values in localStorage for persistence
+            $('#number, #code, #code_name').on('change input', function() {
+                localStorage.setItem('checkout_' + this.id, this.value);
+            });
+            
+            // Restore values if they exist
+            $('#number, #code, #code_name').each(function() {
+                var storedValue = localStorage.getItem('checkout_' + this.id);
+                if (storedValue && !this.value) {
+                    this.value = storedValue;
+                }
+            });
+            
+            // Clear localStorage on successful form submission
+            $('#payment-form').on('submit', function() {
+                setTimeout(function() {
+                    ['checkout_number', 'checkout_code', 'checkout_code_name'].forEach(function(key) {
+                        localStorage.removeItem(key);
+                    });
+                }, 1000);
+            });
+            
+            // Handle address selection persistence
+            $('input[name="address"]').on('change', function() {
+                localStorage.setItem('checkout_selected_address', this.value);
+            });
+            
+            // Restore selected address
+            var selectedAddress = localStorage.getItem('checkout_selected_address');
+            if (selectedAddress) {
+                $('input[name="address"][value="' + selectedAddress + '"]').prop('checked', true);
+            }
+        });
+    </script>
 @endpush
