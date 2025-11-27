@@ -176,10 +176,13 @@
                                     {{ currencyFormat($order->sub_total) }} </span>
                             </li>
 
-                            <li><span>{{ __('frontend.delivery_charge') }}</span>
-                                <span
-                                    class="pe-xxl-4 pe-xl-3 pe-lg-1 pe-md-1">{{ currencyFormat($order->delivery_charge) }}</span>
-                            </li>
+                            @if ($order->tax_amount > 0)
+                                <li><span>{{ __('frontend.tax') }} ({{ $order->formatted_tax_rate }}) </span>
+                                    <span class="pe-xxl-4 pe-xl-3 pe-lg-1 pe-md-1">
+                                        {{ currencyFormat($order->tax_amount) }} </span>
+                                </li>
+                            @endif
+
                             <li>
                                 <span>{{ __('frontend.total') }}</span>
                                 <span class="pe-xxl-4 pe-xl-3 pe-lg-1 pe-md-1">{{ currencyFormat($order->total) }}</span>
@@ -332,12 +335,14 @@
                                                 {{ currencyFormat($order->discount->amount) }}</span>
                                         </li>
                                     @endif
-                                    <li class="d-flex align-items-center justify-content-between">
-                                        <span class="text-start"> {{ __('frontend.delivery_charge') }}:
-                                        </span>
-                                        <span class="text-end align-top">{{ currencyFormat($order->delivery_charge) }}
-                                        </span>
-                                    </li>
+
+                                    @if ($order->tax_amount > 0)
+                                        <li class="d-flex align-items-center justify-content-between">
+                                            <span class="text-start"> {{ __('frontend.tax') }} ({{ $order->formatted_tax_rate }}):</span>
+                                            <span class="text-end align-top">{{ currencyFormat($order->tax_amount) }}</span>
+                                        </li>
+                                    @endif
+
                                     <li class="d-flex align-items-center justify-content-between">
                                         <span class="text-start"> {{ __('frontend.total') }}:</span>
                                         <span class="text-end align-top"> {{ currencyFormat($order->total) }}</span>

@@ -7,9 +7,10 @@ use App\Models\ThemeSettings;
 use Carbon\Carbon;
 
 if (!function_exists('getCountry')) {
-    function getCountry(Request $request){
+    function getCountry(Request $request)
+    {
         $ip = $request->ip();
-        $ip ='103.72.212.130';
+        $ip = '103.72.212.130';
         $response = Http::get("http://ip-api.com/json/{$ip}");
         if ($response->successful()) {
             $location = $response->json();
@@ -45,11 +46,11 @@ if (!function_exists('pluck')) {
 
 
 if (!function_exists('getCurrentVersion')) {
-     function getCurrentVersion()
-     {
-         $version = File::get(public_path() . '/version.txt');
-         return $version;
-     }
+    function getCurrentVersion()
+    {
+        $version = File::get(public_path() . '/version.txt');
+        return $version;
+    }
 }
 
 if (!function_exists('isJson')) {
@@ -64,9 +65,9 @@ if (!function_exists('isJson')) {
 if (!function_exists('orderAddress')) {
     function orderAddress($string)
     {
-        if(isJson($string)){
-            $address = json_decode($string,true);
-            return isset($address['apartment']) ? 'Apartment : '.$address['apartment'].','.$address['address'] : $address['address'];
+        if (isJson($string)) {
+            $address = json_decode($string, true);
+            return isset($address['apartment']) ? 'Apartment : ' . $address['apartment'] . ',' . $address['address'] : $address['address'];
         }
         return $string;
     }
@@ -76,6 +77,8 @@ if (!function_exists('orderAddress')) {
 if (!function_exists('currencyFormat')) {
     function currencyFormat($currency)
     {
+        // Convert string to float if needed, handle null/empty values
+        $currency = is_numeric($currency) ? (float) $currency : 0.0;
         return Setting::get('currency_code') . number_format($currency, 2);
     }
 }
@@ -329,7 +332,7 @@ if (!function_exists('action_button')) {
                 $retAction .= delivery_button($array['delivery']['route'], $array['delivery']['permission']);
             }
             return $retAction;
-        } else if ( isset($array['accept']) || isset($array['reject']) ) {
+        } else if (isset($array['accept']) || isset($array['reject'])) {
             $retAction = '';
             if (isset($array['accept']['route'])) {
                 $retAction .= accept_button($array['accept']['route']);
@@ -354,12 +357,12 @@ if (!function_exists('add_http')) {
 }
 
 if (!function_exists('add_button')) {
-    function add_button($route, $permission = null, $label = null,$langFile = null, $bgColor = 'btn-primary')
+    function add_button($route, $permission = null, $label = null, $langFile = null, $bgColor = 'btn-primary')
     {
         if (auth()->user()->can($permission)) {
             return  '<a href="' . $route . '" class="db-btn h-[37px] text-white bg-primary">
             <i class="fa-solid fa-circle-plus"></i>
-             <span>' . trans($langFile.'.' . $label . '') . '</span>
+             <span>' . trans($langFile . '.' . $label . '') . '</span>
              </a>';
         }
         return '';
@@ -432,7 +435,7 @@ if (!function_exists('greeting')) {
         $time = new Carbon();
         $greet = '';
         switch ($time->hour) {
-            case $time->hour < 12 :
+            case $time->hour < 12:
                 $greet = __('dashboard.good_morning');
                 break;
             case $time->hour >= 12 && $time->hour <= 17:
@@ -441,7 +444,7 @@ if (!function_exists('greeting')) {
             case $time->hour >= 17 && $time->hour <= 24:
                 $greet = __('dashboard.good_evening');
                 break;
-            
+
             default:
                 $greet = __('dashboard.good_morning');
                 break;

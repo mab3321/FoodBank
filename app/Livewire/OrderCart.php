@@ -128,20 +128,33 @@ class OrderCart extends Component
                 $this->totalQty += $cart['qty'];
                 $this->totalAmount += $cart['price'] * $cart['qty'];
                 $this->carts['items'][$key]['totalPrice'] =  $cart['price'] * $cart['qty'];
-                $this->delivery_charge = setting('basic_delivery_charge');
             }
 
+            // Set delivery charge based on delivery type BEFORE tax calculation
             if ($this->delivery_type == DeliveryType::PICKUP) {
                 $this->delivery_charge = 0;
                 $this->delivery_type = true;
+            } else {
+                $this->delivery_charge = setting('basic_delivery_charge');
             }
+
+            // Calculate tax based on restaurant tax rate
+            $restaurant = Restaurant::find(session('session_cart_restaurant_id'));
+            $taxRate = $restaurant ? $restaurant->tax_rate : 0;
+            $subtotalAfterDiscount = $this->totalAmount - $this->discountAmount;
+            $taxAmount = $taxRate > 0 ? round(($subtotalAfterDiscount * $taxRate) / 100, 2) : 0;
+
             $this->carts['couponID'] = $this->couponID;
             $this->subTotalAmount = $this->totalAmount;
             $this->carts['subTotalAmount'] = $this->totalAmount;
             $this->totalAmount  = $this->totalAmount - $this->discountAmount;
             $this->carts['totalQty'] = $this->totalQty;
 
-            $this->carts['totalPayAmount'] = $this->totalAmount + $this->delivery_charge;
+            // Add tax information to cart
+            $this->carts['tax_rate'] = $taxRate;
+            $this->carts['tax_amount'] = $taxAmount;
+
+            $this->carts['totalPayAmount'] = $this->totalAmount + $this->delivery_charge + $taxAmount;
             $this->carts['totalAmount'] = $this->totalAmount;
             $this->carts['delivery_charge'] = $this->delivery_charge;
 
@@ -151,7 +164,7 @@ class OrderCart extends Component
             $this->carts['coupon_amount'] = $this->discountAmount;
             $this->carts['delivery_type'] = $this->delivery_type;
             $this->carts['free_delivery'] = $this->free_delivery;
-            $this->totalPayAmount = $this->totalAmount + $this->delivery_charge;
+            $this->totalPayAmount = $this->totalAmount + $this->delivery_charge + $taxAmount;
         } else {
             $this->totalAmount = 0;
             $this->delivery_charge = 0;
@@ -168,6 +181,8 @@ class OrderCart extends Component
             $this->carts['totalAmount'] = 0;
             $this->carts['delivery_charge'] = 0;
             $this->carts['coupon_amount'] = 0;
+            $this->carts['tax_rate'] = 0;
+            $this->carts['tax_amount'] = 0;
         }
 
         $this->dispatch('showCartQty', ['qty' => $this->totalQty]);

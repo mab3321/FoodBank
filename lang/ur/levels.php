@@ -1,14 +1,15 @@
 <?php
 
 return array(
-    'name'                              => 'নাম',
-    'slug'                              => 'স্লাগ',
-    'status'                            => 'অবস্থা',
-    'taxable'                           => 'করপ্রযোজ্য',
-    'location'                          => 'অবস্থান',
-    'description'                       => 'বিবরণ',
-    'site_short_description'            => 'সাইট সংক্ষিপ্ত বিবরণ',
-    'mrp'                               => 'এমআরপি',
+    'name'                              => 'نام',
+    'slug'                              => 'سلگ',
+    'status'                            => 'حالت',
+    'taxable'                           => 'ٹیکس کے قابل',
+    'tax_rate'                          => 'ٹیکس کی شرح',
+    'location'                          => 'مقام',
+    'description'                       => 'تفصیلات',
+    'site_short_description'            => 'سائٹ کی مختصر تفصیلات',
+    'mrp'                               => 'ایم آر پی',
     'product_image'                     => 'পণ্যের চিত্র',
     'waiter_status'                     => 'ওয়েটারের অবস্থা',
     'area'                              => 'এলাকা',

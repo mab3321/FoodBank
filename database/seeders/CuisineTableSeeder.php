@@ -6,11 +6,12 @@ use App\Models\Cuisine;
 use Illuminate\Database\Seeder;
 use App\Enums\CategoryStatus;
 
-class CuisineTableSeeder extends Seeder{
+class CuisineTableSeeder extends Seeder
+{
     public array $cusines = [
         [
-            'name'         => "Bangladeshi",
-            'slug'         => "bangladeshi",
+            'name'         => "Pakistani",
+            'slug'         => "pakistani",
             'description'  => "<p>This Cuisine refers to a distinctive style or method of cooking, often associated with a particular region or culture. It encompasses a wide range of ingredients, flavors, and cooking techniques that reflect the culinary traditions of a community.&nbsp;</p>",
             'depth'        => "0",
             'left'         => "0",
@@ -136,7 +137,8 @@ class CuisineTableSeeder extends Seeder{
      * @return void
      */
 
-    public function run(){
+    public function run()
+    {
         if (env('DEMO_MODE')) {
             foreach ($this->cusines as $cusine) {
                 $cusineObject = Cuisine::create([
@@ -155,10 +157,10 @@ class CuisineTableSeeder extends Seeder{
                     'editor_id'    => $cusine['editor_id'],
                 ]);
                 if (file_exists(
-                    public_path('/images/seeder/cusine/' . $cusine['slug'].'.jpg')
+                    public_path('/images/seeder/cusine/' . $cusine['slug'] . '.jpg')
                 )) {
                     $cusineObject->addMedia(
-                        public_path('/images/seeder/cusine/' .  $cusine['slug'].'.jpg')
+                        public_path('/images/seeder/cusine/' .  $cusine['slug'] . '.jpg')
                     )->preservingOriginal()->toMediaCollection('cuisines');
                 }
             }

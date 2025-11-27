@@ -22,9 +22,9 @@ class LanguageSeeder extends Seeder
             'status'    => Status::ACTIVE,
         ],
         [
-            'name'      => 'Bangla',
-            'code'      => 'bn',
-            'flag_icon' => '🇧🇩',
+            'name'      => 'Urdu',
+            'code'      => 'ur',
+            'flag_icon' => '🇵🇰',
             'status'    => Status::ACTIVE,
         ],
     ];
@@ -36,7 +36,8 @@ class LanguageSeeder extends Seeder
      * @return void
      */
 
-    public function run(){
+    public function run()
+    {
         foreach ($this->languageOptions as $languageOption) {
             Language::create([
                 'name'      => $languageOption['name'],

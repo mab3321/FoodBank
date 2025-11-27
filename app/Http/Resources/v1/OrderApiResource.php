@@ -52,8 +52,30 @@ class OrderApiResource extends JsonResource
             ),
             'customer'         => new UserResource($this->user),
             'restaurant'             => new RestaurantResource($this->restaurant),
-            'deliveryBoy' => $this->delivery_boy_id == null?null:new UserResource($this->delivery),
-        ];
+            'deliveryBoy' => $this->delivery_boy_id == null ? null : new UserResource($this->delivery),
 
+            // Timer information for live tracking
+            'timer' => $this->when(
+                $this->status == \App\Enums\OrderStatus::PROCESS && $this->process_started_at,
+                [
+                    'process_started_at' => $this->process_started_at?->toISOString(),
+                    'estimated_wait_time' => $this->estimated_wait_time,
+                    'remaining_time' => $this->remaining_time,
+                    'elapsed_time' => $this->elapsed_time,
+                    'is_overdue' => $this->is_overdue,
+                    'progress_percentage' => $this->progress_percentage,
+                    'formatted_remaining_time' => $this->formatted_remaining_time
+                ]
+            ) ?: $this->when(
+                $this->process_started_at && $this->ready_at,
+                [
+                    'process_started_at' => $this->process_started_at?->toISOString(),
+                    'ready_at' => $this->ready_at?->toISOString(),
+                    'estimated_wait_time' => $this->estimated_wait_time,
+                    'actual_preparation_time' => $this->actual_preparation_time,
+                    'was_on_time' => $this->actual_preparation_time <= $this->estimated_wait_time
+                ]
+            ),
+        ];
     }
 }

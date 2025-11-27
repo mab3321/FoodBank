@@ -108,6 +108,7 @@ class RestaurantController extends BackendController
         $restaurant->pickup_status   = $request->pickup_status;
         $restaurant->table_status    = $request->table_status;
         $restaurant->status          = $request->status;
+        $restaurant->tax_rate        = $request->tax_rate ?? 17.00;
         if ($user->status == UserStatus::INACTIVE) {
             $restaurant->status = RestaurantStatus::INACTIVE;
         }
@@ -115,7 +116,7 @@ class RestaurantController extends BackendController
         $restaurant->save();
         $restaurant->cuisines()->sync($request->get('cuisines'));
 
-        
+
         //Store Image
         if ($request->hasFile('image') && $request->file('image')->isValid()) {
             $restaurant->addMediaFromRequest('image')->toMediaCollection('restaurant');
@@ -138,7 +139,7 @@ class RestaurantController extends BackendController
         return redirect(route('admin.restaurants.index'))->withError($depositService->message);
     }
 
- 
+
     /**
      * Show the form for editing the specified resource.
      *
@@ -202,6 +203,7 @@ class RestaurantController extends BackendController
                 $restaurant->pickup_status   = $request->pickup_status;
                 $restaurant->table_status    = $request->table_status;
                 $restaurant->status          = $request->status;
+                $restaurant->tax_rate        = $request->tax_rate ?? 17.00;
                 if ($user->status == UserStatus::INACTIVE) {
                     $restaurant->status = RestaurantStatus::INACTIVE;
                 }
@@ -280,10 +282,10 @@ class RestaurantController extends BackendController
             return Datatables::of($restaurants)
                 ->addColumn('action', function ($restaurant) {
                     $button_array   = [];
-                    $button_array['view']   = ['route' => route('admin.restaurants.show', $restaurant),'permission' => 'restaurants_show'];
-                    $button_array['edit']   = ['route' => route('admin.restaurants.edit', $restaurant),'permission' => 'restaurants_edit'];
-                    $button_array['delete'] = ['route' => route('admin.restaurants.destroy', $restaurant),'permission' => 'restaurants_delete'];
-                    
+                    $button_array['view']   = ['route' => route('admin.restaurants.show', $restaurant), 'permission' => 'restaurants_show'];
+                    $button_array['edit']   = ['route' => route('admin.restaurants.edit', $restaurant), 'permission' => 'restaurants_edit'];
+                    $button_array['delete'] = ['route' => route('admin.restaurants.destroy', $restaurant), 'permission' => 'restaurants_delete'];
+
                     return action_button($button_array);
                 })
                 ->editColumn('user_id', function ($restaurant) {
@@ -317,13 +319,13 @@ class RestaurantController extends BackendController
             $i = 0;
             return Datatables::of($menuItems)
                 ->addColumn('action', function ($menuItem) {
-                    
+
                     $button_array           = [];
-                    $button_array['modify'] = ['route' => route('admin.menu-items.modify', $menuItem),'permission' => 'menu-items_show'];
-                    $button_array['view']   = ['route' => route('admin.menu-items.show', $menuItem),'permission' => 'menu-items_show'];
-                    $button_array['edit']   = ['route' => route('admin.menu-items.edit', $menuItem),'permission' => 'menu-items_edit'];
-                    $button_array['delete'] = ['route' => route('admin.menu-items.destroy', $menuItem),'permission' => 'menu-items_delete'];
-                    
+                    $button_array['modify'] = ['route' => route('admin.menu-items.modify', $menuItem), 'permission' => 'menu-items_show'];
+                    $button_array['view']   = ['route' => route('admin.menu-items.show', $menuItem), 'permission' => 'menu-items_show'];
+                    $button_array['edit']   = ['route' => route('admin.menu-items.edit', $menuItem), 'permission' => 'menu-items_edit'];
+                    $button_array['delete'] = ['route' => route('admin.menu-items.destroy', $menuItem), 'permission' => 'menu-items_delete'];
+
                     return action_button($button_array);
                 })
                 ->editColumn('id', function ($menuItem) use (&$i) {

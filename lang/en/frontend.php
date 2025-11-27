@@ -1,6 +1,6 @@
 <?php
 
-return array (
+return array(
   'title'                           => 'Organic & Tasty Food for your Table',
   'subtitle'                        => 'Explore top-rated attractions, activities and more',
   'location'                        => 'Location',
@@ -24,7 +24,8 @@ return array (
   'addon'                           => 'Add On',
   'mycart'                          => 'My Cart',
   'tel'                             => 'Tel',
-  'food_ordering_delivery_system'   => 'Food Ordering & Delivery System',
+  'food_ordering_delivery_system'   => 'Food Ordering & Pickup System',
+  'food_ordering_system'            => 'Food Ordering System',
   'restaurant'                      => 'Restaurant',
   'cart_description'                => 'Good food is always cooking! Go ahead, order some yummy items from the menu.',
   'discount'                        => 'Discount',
@@ -84,6 +85,7 @@ return array (
   'order_summary'                   => 'Order Summary',
   'your_order_from'                 => 'Your order from',
   'subtotal'                        => 'Subtotal',
+  'tax'                             => 'Tax',
   'delivery_charge'                 => 'Delivery Charge',
   'total'                           => 'Total',
   'continue'                        => 'CONTINUE',
@@ -137,7 +139,7 @@ return array (
   'order_reject'                    => 'Order Reject',
   'order_accept'                    => 'Order Accept',
   'order_process'                   => 'Order Process',
-  'on_the_way'                      => 'On The Way',
+  'on_the_way'                      => 'Ready for Pickup',
   'order_completed'                 => 'Order Completed',
   'item'                            => 'Item',
   'price'                           => 'Price',

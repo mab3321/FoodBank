@@ -190,8 +190,7 @@
                                 @enderror
                             </div>
 
-                            <input type="hidden" name="total_delivery_charge" id="total_delivery_charge"
-                                value="0">
+
 
                             <div class="form-group mb-0">
                                 <label class="form-label required">{{ __('frontend.payment_type') }}</label>
@@ -324,17 +323,18 @@
                                 <span> {{ setting('currency_code') }}{{ $menuitems['subTotalAmount'] }}</span>
                             </li>
 
-                            @if ($menuitems['delivery_type'] != true)
-                                <li>
-                                    <span>{{ __('frontend.delivery_charge') }}</span>
-                                    <span>{{ setting('currency_code') }}<span id="delivery_chearge">0</span>
-                                    </span>
-                                </li>
-                            @endif
+
                             @if (Schema::hasColumn('coupons', 'slug'))
                                 <li>
                                     <span>{{ __('frontend.discount') }}</span>
                                     <span> {{ setting('currency_code') }}{{ $menuitems['coupon_amount'] }} </span>
+                                </li>
+                            @endif
+
+                            @if (isset($menuitems['tax_amount']) && $menuitems['tax_amount'] > 0)
+                                <li>
+                                    <span>{{ __('frontend.tax') }} ({{ $menuitems['tax_rate'] }}%)</span>
+                                    <span>{{ setting('currency_code') }}{{ number_format($menuitems['tax_amount'], 2) }}</span>
                                 </li>
                             @endif
 
@@ -492,9 +492,6 @@
         const couponAmount = "{{ $menuitems['coupon_amount'] }}";
         const locationLat = parseFloat("{{ $restaurant->lat }}");
         const locationLong = parseFloat("{{ $restaurant->long }}");
-        const freeZone = "{{ setting('free_delivery_radius') }}";
-        const basicCharge = "{{ setting('basic_delivery_charge') }}";
-        const chragePerKilo = "{{ setting('charge_per_kilo') }}";
         const delivery_type = "{{ $menuitems['delivery_type'] }}";
 
         const lastAddress = "{{ !blank($lastAddress) ? true : false }}";

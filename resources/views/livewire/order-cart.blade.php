@@ -113,21 +113,19 @@
                         <span>{{ setting('currency_code') }}{{ $subTotalAmount }}</span>
                     </li>
 
-                    @if ($delivery_type == \App\Enums\DeliveryType::DELIVERY)
-                        <li class="cart-amount-item">
-                            <span>{{ __('frontend.delivery_charge') }}</span>
-                            @if (setting('free_delivery') == 1 && $branch->postalCode()->max_order <= $subTotalAmount)
-                                <span> {{ __('levels.free') }}</span>
-                            @else
-                                <span>{{ setting('currency_code') }}{{ $delivery_charge }}</span>
-                            @endif
-                        </li>
-                    @endif
+
 
                     @if (Schema::hasColumn('coupons', 'slug'))
                         <li class="cart-amount-item">
                             <span>{{ __('frontend.discount') }}</span>
                             <span>{{ setting('currency_code') }}{{ $discountAmount }} </span>
+                        </li>
+                    @endif
+
+                    @if (!blank($carts) && isset($carts['tax_amount']) && $carts['tax_amount'] > 0)
+                        <li class="cart-amount-item">
+                            <span>{{ __('frontend.tax') }} ({{ $carts['tax_rate'] }}%)</span>
+                            <span>{{ setting('currency_code') }}{{ number_format($carts['tax_amount'], 2) }}</span>
                         </li>
                     @endif
 

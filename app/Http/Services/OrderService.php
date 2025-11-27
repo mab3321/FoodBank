@@ -162,6 +162,10 @@ class OrderService
         ])->first();
         if (!blank($order)) {
             $order->status = OrderStatus::PROCESS;
+
+            // Start the preparation timer
+            $order->startTimer();
+
             $order->save();
             $orderHistory = $this->status($orderId, OrderStatus::PROCESS);
             if ($orderHistory->status) {
@@ -186,6 +190,10 @@ class OrderService
         if (!blank($order)) {
             // Allow changing to ON_THE_WAY from any status (for restaurant owners)
             $order->status = OrderStatus::ON_THE_WAY;
+
+            // Stop the preparation timer since order is ready for pickup
+            $order->stopTimer();
+
             $order->save();
             $orderHistory = $this->status($orderId, OrderStatus::ON_THE_WAY);
             if ($orderHistory->status) {
@@ -297,6 +305,10 @@ class OrderService
 
 
             $order->status = OrderStatus::COMPLETED;
+
+            // Stop the preparation timer if it hasn't been stopped yet
+            $order->stopTimer();
+
             $order->save();
 
             $bestSelling = $this->bestSelling($orderId);
@@ -469,12 +481,18 @@ class OrderService
                 ]);
             }
         }
+        // Calculate total with tax
+        $taxAmount = isset($data['tax_amount']) ? $data['tax_amount'] : 0;
+        $totalWithTax = $data['total'] + $data['delivery_charge'] + $taxAmount;
+
         $order = [
             'user_id'         => $data['user_id'],
             'restaurant_id'   => $data['restaurant_id'],
-            'total'           => $data['total'] + $data['delivery_charge'],
+            'total'           => $totalWithTax,
             'sub_total'       => $data['total'],
             'delivery_charge' => $data['delivery_charge'],
+            'tax_rate'        => isset($data['tax_rate']) ? $data['tax_rate'] : 0,
+            'tax_amount'      => $taxAmount,
             'status'          => OrderStatus::PENDING,
             'order_type'      => $data['order_type'],
             'address'         => $address,

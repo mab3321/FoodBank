@@ -157,7 +157,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['installed'], 'as' => 'admin
     Route::get('login', [LoginController::class, 'showLoginForm']);
 });
 
-Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'installed', 'license-activate', 'backend_permission','verify.restaurant'], 'as' => 'admin.'], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'installed', 'license-activate', 'backend_permission', 'verify.restaurant'], 'as' => 'admin.'], function () {
     Route::get('dashboard',                                 [DashboardController::class, 'index'])->name('dashboard.index');
     Route::post('day-wise-income-order',                    [DashboardController::class, 'dayWiseIncomeOrder'])->name('dashboard.day-wise-income-order');
     Route::post('day-wise-order-statistics',                [DashboardController::class, 'dayWiseOrderStatistics']);
@@ -278,6 +278,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'installed', 'licens
 
     Route::get('live-orders',                               [OrderController::class, 'liveOrders'])->name('orders.live-orders');
     Route::get('get-live-orders',                           [OrderController::class, 'getliveOrders'])->name('orders.get-live-Order');
+    Route::get('preparation-analytics',                     [OrderController::class, 'preparationAnalytics'])->name('orders.preparation-analytics');
 
     Route::resource('coupon',                               CouponController::class);
     Route::get('test-coupon',                               [CouponController::class, 'testFunction']);

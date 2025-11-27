@@ -88,6 +88,16 @@
 								<small class="db-field-alert">{{ $message }}</small>
 								@enderror
 							</div>
+
+                            <div class="col-12 sm:col-6 md:col-4 xl:col-3">
+								<label class="db-field-title required" for="wait_time">{{ __('Wait Time (Minutes)') }}</label>
+								<input type="number" name="wait_time" id="wait_time" min="1" max="120" class="db-field-control @error('wait_time') invalid @enderror" value="{{ old('wait_time', $menuItem->wait_time) }}" placeholder="e.g., 20">
+								<small class="text-gray-500">Estimated preparation time for this item</small>
+	
+								@error('wait_time')
+								<small class="db-field-alert">{{ $message }}</small>
+								@enderror
+							</div>
 							
 							<div class="col-12 sm:col-6 md:col-4 xl:col-3">
 								<label class="db-field-title required">{{ __('levels.status') }}</label>

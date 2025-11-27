@@ -122,74 +122,84 @@
                                 </a>
                             @elseif (auth()->user()->myRole == App\Enums\UserRole::RESTAURANTOWNER)
                                 @php
-                                    $allowedStatuses = [];
-                                    // Restaurant owners can change to all valid statuses
-                                    $statusOptions = [
-                                        App\Enums\OrderStatus::PENDING => __('order.pending'),
-                                        App\Enums\OrderStatus::CANCEL => __('order.cancel'), 
-                                        App\Enums\OrderStatus::REJECT => __('order.reject'),
-                                        App\Enums\OrderStatus::ACCEPT => __('order.accept'),
-                                        App\Enums\OrderStatus::PROCESS => __('order.process'),
-                                        App\Enums\OrderStatus::ON_THE_WAY => __('order.on_the_way'),
-                                        App\Enums\OrderStatus::COMPLETED => __('order.completed')
+                                    // Show ALL order statuses - owner can jump to any status directly
+                                    $currentStatus = $order->status;
+                                    $allStatuses = [
+                                        App\Enums\OrderStatus::ACCEPT => ['name' => __('order.accept'), 'color' => 'bg-green-500 hover:bg-green-600', 'icon' => 'fa-check'],
+                                        App\Enums\OrderStatus::PROCESS => ['name' => __('order.process'), 'color' => 'bg-blue-500 hover:bg-blue-600', 'icon' => 'fa-cog'],
+                                        App\Enums\OrderStatus::ON_THE_WAY => ['name' => 'Ready for Pickup', 'color' => 'bg-purple-500 hover:bg-purple-600', 'icon' => 'fa-clock'],
+                                        App\Enums\OrderStatus::COMPLETED => ['name' => __('order.completed'), 'color' => 'bg-green-600 hover:bg-green-700', 'icon' => 'fa-check-circle'],
+                                        App\Enums\OrderStatus::REJECT => ['name' => __('order.reject'), 'color' => 'bg-red-500 hover:bg-red-600', 'icon' => 'fa-times'],
+                                        App\Enums\OrderStatus::CANCEL => ['name' => __('order.cancel'), 'color' => 'bg-gray-500 hover:bg-gray-600', 'icon' => 'fa-ban']
                                     ];
-                                    // Remove current status from options
-                                    unset($statusOptions[$order->status]);
+                                    
+                                    // Remove current status from available options
+                                    unset($allStatuses[$currentStatus]);
                                 @endphp
                                 
-                                <div class="flex gap-3 items-center">
-                                    <div class="relative cursor-pointer">
-                                        <select class="orderStatusDropdown text-sm cursor-pointer capitalize appearance-none pl-4 pr-10 h-[38px] rounded border border-primary bg-white text-primary" data-id="{{ $order->id }}" data-base-url="{{ url('/') }}/admin/order/change-status">
-                                            <option value="">{{ trans('order_status.' . $order->status) }} - Change Status</option>
-                                            @foreach($statusOptions as $statusCode => $statusName)
-                                                <option value="{{ $statusCode }}">{{ $statusName }}</option>
-                                            @endforeach
-                                        </select>
-                                        <i class="fa-solid fa-chevron-down cursor-pointer absolute top-1/2 right-3.5 -translate-y-1/2 text-xs text-primary"></i>
+                                <div class="bg-gray-50 p-4 rounded-lg border">
+                                    <div class="flex flex-wrap gap-3 items-center mb-3">
+                                        <span class="text-sm font-semibold text-gray-700">Current Status:</span>
+                                        <span class="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                            {{ trans('order_status.' . $order->status) }}
+                                        </span>
                                     </div>
-                                    <button class="submitStatusChange bg-primary text-white px-4 py-2 rounded text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                                            data-target=".orderStatusDropdown" 
-                                            disabled>
-                                        <i class="fa-solid fa-check mr-1"></i>
-                                        Update Status
-                                    </button>
+                                    
+                                    <div class="flex flex-wrap gap-2 items-center">
+                                        <span class="text-sm font-medium text-gray-600 mr-2">Jump to Status:</span>
+                                        @foreach($allStatuses as $statusCode => $statusInfo)
+                                            <button onclick="changeOrderStatus({{ $order->id }}, {{ $statusCode }}, '{{ $statusInfo['name'] }}')" 
+                                                   class="status-btn flex items-center gap-2 px-3 py-2 text-sm font-medium text-white rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg {{ $statusInfo['color'] }}">
+                                                <i class="fas {{ $statusInfo['icon'] }}"></i>
+                                                {{ $statusInfo['name'] }}
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                    
+                                    <div class="mt-2 text-xs text-gray-500">
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        You can jump directly to any status above
+                                    </div>
                                 </div>
                                 
-                            @elseif (auth()->user()->myRole == App\Enums\UserRole::DELIVERYBOY && $order->status == App\Enums\OrderStatus::ON_THE_WAY)
-                                {{-- Delivery Boy can only mark ON_THE_WAY orders as COMPLETED --}}
-                                <div class="flex gap-3 items-center">
-                                    <div class="relative cursor-pointer">
-                                        <select class="orderStatusDropdown text-sm cursor-pointer capitalize appearance-none pl-4 pr-10 h-[38px] rounded border border-primary bg-white text-primary" data-id="{{ $order->id }}" data-base-url="{{ url('/') }}/admin/order/change-status">
-                                            <option value="">{{ trans('order_status.' . $order->status) }}</option>
-                                            <option value="{{ App\Enums\OrderStatus::COMPLETED }}">{{ __('order.completed') }}</option>
-                                        </select>
-                                        <i class="fa-solid fa-chevron-down cursor-pointer absolute top-1/2 right-3.5 -translate-y-1/2 text-xs text-primary"></i>
+                            @elseif (auth()->user()->myRole == App\Enums\UserRole::DELIVERYBOY && ($order->status == App\Enums\OrderStatus::ON_THE_WAY || $order->status == App\Enums\OrderStatus::PROCESS))
+                                <div class="bg-gray-50 p-4 rounded-lg border">
+                                    <div class="flex flex-wrap gap-3 items-center mb-3">
+                                        <span class="text-sm font-semibold text-gray-700">Current Status:</span>
+                                        <span class="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                            @if($order->status == App\Enums\OrderStatus::PROCESS)
+                                                Processing
+                                            @elseif($order->status == App\Enums\OrderStatus::ON_THE_WAY)
+                                                Ready for Pickup
+                                            @endif
+                                        </span>
                                     </div>
-                                    <button class="submitStatusChange bg-primary text-white px-4 py-2 rounded text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                                            data-target=".orderStatusDropdown" 
-                                            disabled>
-                                        <i class="fa-solid fa-check mr-1"></i>
-                                        Update Status
-                                    </button>
-                                </div>
-
-                            @elseif (auth()->user()->myRole == App\Enums\UserRole::DELIVERYBOY && $order->status == App\Enums\OrderStatus::PROCESS)
-
-                                <div class="flex gap-3 items-center">
-                                    <div class="relative cursor-pointer">
-                                        <select class="deliveryStatusDropdown text-sm cursor-pointer capitalize appearance-none pl-4 pr-10 h-[38px] rounded border border-primary bg-white text-primary" data-id="{{ $order->id }}" data-base-url="{{ url('/') }}/admin/orders/product-receive">
-                                            <option value="">{{ trans('order_status.' . $order->status) }}</option>
-                                            <option value="10">{{ __('order.not_receive') }}</option>
-                                            <option value="5">{{ __('order.receive') }}</option>
-                                        </select>
-                                        <i class="fa-solid fa-chevron-down cursor-pointer absolute top-1/2 right-3.5 -translate-y-1/2 text-xs text-primary"></i>
-                                    </div>
-                                    <button class="submitDeliveryChange bg-primary text-white px-4 py-2 rounded text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                                            data-target=".deliveryStatusDropdown" 
-                                            disabled>
-                                        <i class="fa-solid fa-truck mr-1"></i>
-                                        Update Delivery
-                                    </button>
+                                    
+                                    @if($order->status == App\Enums\OrderStatus::ON_THE_WAY)
+                                        {{-- Staff can mark Ready for Pickup orders as COMPLETED when customer picks up --}}
+                                        <div class="flex flex-wrap gap-3 items-center">
+                                            <span class="text-sm font-medium text-gray-600 mr-2">Customer Pickup:</span>
+                                            <button onclick="changeOrderStatus({{ $order->id }}, {{ App\Enums\OrderStatus::COMPLETED }}, 'Order Picked Up')" 
+                                                   class="status-btn flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg bg-green-600 hover:bg-green-700">
+                                                <i class="fas fa-hand-holding"></i>
+                                                Order Picked Up
+                                            </button>
+                                        </div>
+                                    @elseif($order->status == App\Enums\OrderStatus::PROCESS)
+                                        <div class="flex flex-wrap gap-3 items-center">
+                                            <span class="text-sm font-medium text-gray-600 mr-2">Product Status:</span>
+                                            <button onclick="updateDeliveryStatus({{ $order->id }}, 10, '{{ __('order.not_receive') }}')" 
+                                                   class="status-btn flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg bg-red-500 hover:bg-red-600">
+                                                <i class="fas fa-times-circle"></i>
+                                                {{ __('order.not_receive') }}
+                                            </button>
+                                            <button onclick="updateDeliveryStatus({{ $order->id }}, 5, '{{ __('order.receive') }}')" 
+                                                   class="status-btn flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg bg-green-500 hover:bg-green-600">
+                                                <i class="fas fa-check-circle"></i>
+                                                {{ __('order.receive') }}
+                                            </button>
+                                        </div>
+                                    @endif
                                 </div>    
                             @endif
 
@@ -264,16 +274,16 @@
                                 </a>
                             @else
                                 <a href="{{ route('admin.order.change-status', [$order->id, App\Enums\OrderStatus::ON_THE_WAY]) }}" 
-                                   class="btn bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition-colors"
-                                   onclick="return confirm('Send for delivery?')">
-                                    <i class="fas fa-truck mr-2"></i>Send for Delivery
+                                   class="btn bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 transition-colors"
+                                   onclick="return confirm('Mark as ready for pickup?')">
+                                    <i class="fas fa-clock mr-2"></i>Ready for Pickup
                                 </a>
                             @endif
                         @elseif($order->status == App\Enums\OrderStatus::ON_THE_WAY)
                             <a href="{{ route('admin.order.change-status', [$order->id, App\Enums\OrderStatus::COMPLETED]) }}" 
                                class="btn bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
-                               onclick="return confirm('Mark as delivered?')">
-                                <i class="fas fa-check-circle mr-2"></i>Mark Delivered
+                               onclick="return confirm('Mark as picked up?')">
+                                <i class="fas fa-hand-holding mr-2"></i>Mark Picked Up
                             </a>
                         @endif
                         
@@ -286,6 +296,127 @@
                             </a>
                         @endif
                     </div>
+
+                    {{-- Order Timer Component --}}
+                    @if($order->status == App\Enums\OrderStatus::PROCESS && $order->process_started_at)
+                    <div class="mt-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-lg border border-blue-200">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-xl font-bold text-gray-800">
+                                <i class="fas fa-clock text-blue-600 mr-2"></i>
+                                Order Preparation Timer
+                            </h4>
+                            <div class="text-sm text-gray-600">
+                                Started: {{ $order->process_started_at->format('H:i') }}
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {{-- Timer Display --}}
+                            <div class="text-center">
+                                <div class="text-4xl font-bold mb-2 countdown-display
+                                    @if($order->is_overdue) text-red-600 animate-pulse
+                                    @elseif($order->remaining_time <= 5) text-orange-500
+                                    @else text-green-600 @endif" 
+                                    id="countdown-{{ $order->id }}">
+                                    {{ $order->formatted_remaining_time }}
+                                </div>
+                                <div class="text-sm text-gray-600">
+                                    @if($order->is_overdue)
+                                        <span class="text-red-600 font-semibold">⚠️ OVERDUE</span>
+                                    @else
+                                        Remaining Time
+                                    @endif
+                                </div>
+                            </div>
+
+                            {{-- Progress Bar --}}
+                            <div class="flex items-center">
+                                <div class="w-full">
+                                    <div class="flex justify-between text-sm mb-2">
+                                        <span>Progress</span>
+                                        <span id="progress-text-{{ $order->id }}">{{ $order->progress_percentage }}%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                                        <div class="h-full rounded-full transition-all duration-1000 progress-bar
+                                            @if($order->is_overdue) bg-red-500
+                                            @elseif($order->progress_percentage >= 80) bg-orange-500
+                                            @else bg-green-500 @endif"
+                                            id="progress-bar-{{ $order->id }}"
+                                            style="width: {{ min($order->progress_percentage, 100) }}%">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Order Info --}}
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-gray-700 mb-1">
+                                    {{ $order->estimated_wait_time }} min
+                                </div>
+                                <div class="text-sm text-gray-600">
+                                    Estimated Time
+                                </div>
+                                <div class="text-sm text-gray-500 mt-2">
+                                    Elapsed: <span id="elapsed-{{ $order->id }}">{{ $order->elapsed_time }}</span> min
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Quick Action for Overdue Orders --}}
+                        @if($order->is_overdue)
+                        <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center text-red-700">
+                                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                                    <span class="font-semibold">Order is overdue!</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    @if($order->order_type == App\Enums\OrderTypeStatus::PICKUP)
+                                        <a href="{{ route('admin.order.change-status', [$order->id, App\Enums\OrderStatus::COMPLETED]) }}" 
+                                           class="btn bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors text-sm"
+                                           onclick="return confirm('Mark this order as ready for pickup?')">
+                                            <i class="fas fa-check mr-1"></i>Mark Ready
+                                        </a>
+                                    @else
+                                        <a href="{{ route('admin.order.change-status', [$order->id, App\Enums\OrderStatus::ON_THE_WAY]) }}" 
+                                           class="btn bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors text-sm"
+                                           onclick="return confirm('Mark this order as ready for pickup?')">
+                                            <i class="fas fa-check mr-1"></i>Mark Ready
+                                        </a>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+                    @elseif($order->process_started_at && $order->ready_at)
+                    {{-- Completed Timer Info --}}
+                    <div class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <h4 class="text-lg font-semibold text-green-800 mb-2">
+                            <i class="fas fa-check-circle mr-2"></i>Order Completed
+                        </h4>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-600">Started:</span>
+                                <div class="font-semibold">{{ $order->process_started_at->format('H:i') }}</div>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">Completed:</span>
+                                <div class="font-semibold">{{ $order->ready_at->format('H:i') }}</div>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">Estimated:</span>
+                                <div class="font-semibold">{{ $order->estimated_wait_time }} min</div>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">Actual:</span>
+                                <div class="font-semibold {{ $order->actual_preparation_time > $order->estimated_wait_time ? 'text-red-600' : 'text-green-600' }}">
+                                    {{ $order->actual_preparation_time }} min
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -372,6 +503,13 @@
                                     class="text-sm leading-6 capitalize font-semibold text-[#1AB759]">{{ currencyFormat($order->delivery_charge) }}</span>
                             </li>
                             @endif
+
+                            @if ($order->tax_amount > 0)
+                            <li class="flex items-center justify-between text-heading">
+                                <span class="text-sm leading-6 capitalize">{{ __('levels.tax_rate') }} ({{ $order->formatted_tax_rate }})</span>
+                                <span class="text-sm leading-6 capitalize font-semibold text-[#1AB759]">{{ currencyFormat($order->tax_amount) }}</span>
+                            </li>
+                            @endif
                         </ul>
                         <div class="flex items-center justify-between py-3 border-t border-dashed border-[#EFF0F6]">
                             <h4 class="text-sm leading-6 font-bold capitalize">{{ __('levels.total') }}</h4>
@@ -382,7 +520,7 @@
                 <div class="col-12">
                     <div class="db-card">
                         <div class="db-card-header">
-                            <h3 class="db-card-title">{{ __('order.delivery_information') }}</h3>
+                            <h3 class="db-card-title">{{ __('order.customer_information') }}</h3>
                         </div>
                         <div class="db-card-body">
                             <div class="flex items-center gap-3 mb-4">
@@ -547,7 +685,7 @@
                 </style>
                 <div class="text-center pb-2">
                     <h2> {{ setting('site_name') ? setting('site_name') : '' }} {{ __('frontend.restaurant') }} </h2>
-                    <h3>{{ __('frontend.food_ordering_delivery_system') }}</h3>
+                    <h3>{{ __('frontend.food_ordering_system') }}</h3>
                     <p> {{ __('frontend.email') }}: {{ setting('site_email') }}</p>
                     <p class="mt-2 mb-2"> {{ __('frontend.tel') }}: {{ setting('site_phone_number') }}</p>
                 </div>
@@ -601,10 +739,13 @@
                             </tr>
                         @endif
 
-                        <tr>
-                            <td class="text-start"> {{ __('frontend.delivery_charge') }}:</td>
-                            <td class="text-end align-top">{{ currencyFormat($order->delivery_charge) }}</td>
-                        </tr>
+                        @if ($order->tax_amount > 0)
+                            <tr>
+                                <td class="text-start"> {{ __('frontend.tax') }} ({{ $order->formatted_tax_rate }}): </td>
+                                <td class="text-end align-top"> {{ currencyFormat($order->tax_amount) }}</td>
+                            </tr>
+                        @endif
+
                         <tr>
                             <td class="text-start"> {{ __('frontend.total') }}:</td>
                             <td class="text-end align-top"> {{ currencyFormat($order->total) }}</td>
@@ -642,7 +783,7 @@
                 <p class="text-center border-dashed pt-3"> {{ __('levels.thank_you') }} </p>
                 <div class="text-end invoiceFooter mt-4">
                     <small>{{ setting('site_name') ? setting('site_name') : '' }}</small>
-                    <p>{{ __('frontend.restaurant') }} {{ __('frontend.food_ordering_delivery_system') }}</p>
+                    <p>{{ __('frontend.restaurant') }} {{ __('frontend.food_ordering_system') }}</p>
                 </div>
             </div>
         </div>
@@ -653,92 +794,534 @@
 @endphp
 @endsection
 
+@push('css')
+<style>
+    .status-btn {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, var(--tw-bg-opacity) 0%, rgba(0,0,0,0.1) 100%);
+        border: none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .status-btn:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        transition: left 0.5s;
+    }
+    
+    .status-btn:hover:before {
+        left: 100%;
+    }
+    
+    .status-btn:hover {
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        transform: translateY(-2px) scale(1.05);
+    }
+    
+    .status-btn:active {
+        transform: translateY(0) scale(0.98);
+        transition: all 0.1s;
+    }
+    
+    .status-btn:disabled {
+        transform: none !important;
+        opacity: 0.7 !important;
+        cursor: not-allowed !important;
+    }
+    
+    /* Success animation */
+    @keyframes successPulse {
+        0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+    
+    .status-btn.success-animation {
+        animation: successPulse 1s ease-out;
+    }
+    
+    /* Status-specific gradient backgrounds */
+    .bg-green-500 {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+    
+    .bg-green-600 {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    }
+    
+    .bg-red-500 {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+    
+    .bg-blue-500 {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+    
+    .bg-yellow-500 {
+        background: linear-gradient(135deg, #eab308 0%, #d97706 100%);
+    }
+    
+    .bg-purple-500 {
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    }
+    
+    .bg-orange-500 {
+        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    }
+    
+    .bg-gray-500 {
+        background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    }
+    
+    /* Status display container styling */
+    .bg-gray-50 {
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+    }
+    
+    /* Current status badge styling */
+    .bg-blue-100 {
+        background-color: #dbeafe;
+    }
+    
+    .text-blue-800 {
+        color: #1e40af;
+    }
+    
+    /* Responsive button layout */
+    @media (max-width: 640px) {
+        .status-btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+    
+    /* Loading spinner animation */
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .fa-spin {
+        animation: spin 1s linear infinite;
+    }
+
+    /* Enhanced Timer animations */
+    .countdown-display {
+        transition: all 0.3s ease-in-out;
+        font-variant-numeric: tabular-nums;
+        font-family: 'Courier New', monospace;
+        letter-spacing: 2px;
+    }
+    
+    .progress-bar {
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease-in-out;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    
+    @keyframes pulse {
+        0%, 100% { 
+            opacity: 1; 
+            transform: scale(1);
+        }
+        50% { 
+            opacity: 0.8; 
+            transform: scale(1.02);
+        }
+    }
+    
+    .animate-pulse {
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes slideIn {
+        0% { 
+            transform: translateY(-5px); 
+            opacity: 0.8; 
+        }
+        100% { 
+            transform: translateY(0); 
+            opacity: 1; 
+        }
+    }
+    
+    .timer-update {
+        animation: slideIn 0.2s ease-out;
+    }
+    
+    /* Overdue warning animations */
+    @keyframes warning-glow {
+        0%, 100% { 
+            box-shadow: 0 0 5px rgba(239, 68, 68, 0.3);
+        }
+        50% { 
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+        }
+    }
+    
+    .overdue-glow {
+        animation: warning-glow 2s ease-in-out infinite;
+    }
+    
+    /* Smooth color transitions */
+    .text-green-600, .text-orange-500, .text-red-600 {
+        transition: color 0.4s ease-in-out;
+    }
+    
+    .bg-green-500, .bg-orange-500, .bg-red-500 {
+        transition: background-color 0.4s ease-in-out;
+    }
+</style>
+@endpush
+
 @push('js')
     <script ></script>
     <script>
-
-        // Enable/disable submit button when dropdown selection changes
-        $('.orderStatusDropdown, .deliveryStatusDropdown').on('change', function() {
-            let dropdown = $(this);
-            let selectedValue = dropdown.val();
-            let submitButton = dropdown.closest('.flex').find('button');
-            
-            if (selectedValue && selectedValue !== '') {
-                submitButton.prop('disabled', false);
-                console.log('Status selected:', selectedValue, '- Submit button enabled');
-            } else {
-                submitButton.prop('disabled', true);
-                console.log('No status selected - Submit button disabled');
+        // Function to handle order status changes
+        function changeOrderStatus(orderId, status, statusName) {
+            // Show confirmation dialog
+            if (!confirm(`Are you sure you want to change order status to "${statusName}"?`)) {
+                return;
             }
-        });
-
-        // Handle order status submission for restaurant owners
-        $('.submitStatusChange').on('click', function() {
-            let button = $(this);
-            let dropdown = button.closest('.flex').find('.orderStatusDropdown');
-            let orderId = dropdown.data('id');
-            let baseUrl = dropdown.data('base-url');
-            let status = dropdown.val();
+            
+            // Find the clicked button and disable it
+            let clickedButton = event.target.closest('button');
+            let originalContent = clickedButton.innerHTML;
+            clickedButton.disabled = true;
+            clickedButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Updating...';
+            
+            let baseUrl = '{{ url('/') }}/admin/order/change-status';
             let url = baseUrl + '/' + orderId + '/' + status;
             
-            if (status) {
-                button.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin mr-1"></i>Updating...');
-                console.log('Submitting order status change to:', status, 'URL:', url);
-                
-                $.ajax({
-                    url: url,
-                    type: 'GET',
-                    success: function(response) {
-                        console.log('Status changed successfully');
-                        button.html('<i class="fa-solid fa-check mr-1"></i>Success!');
-                        setTimeout(function() {
-                            location.reload();
-                        }, 1000);
-                    },
-                    error: function(xhr, status, error) {
-                        console.log('Error changing status:', error);
-                        button.prop('disabled', false).html('<i class="fa-solid fa-check mr-1"></i>Update Status');
-                        alert('Error changing order status. Please try again.');
+            console.log('Changing order status to:', statusName, 'URL:', url);
+            
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function(response) {
+                    console.log('Order status changed successfully');
+                    clickedButton.innerHTML = '<i class="fas fa-check mr-1"></i>Success!';
+                    clickedButton.classList.remove('bg-green-500', 'bg-red-500', 'bg-blue-500', 'bg-yellow-500', 'bg-gray-500', 'bg-green-600');
+                    clickedButton.classList.add('bg-green-600');
+                    
+                    // Show success message
+                    showNotification('Order status updated successfully!', 'success');
+                    
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1500);
+                },
+                error: function(xhr, status, error) {
+                    console.log('Error changing order status:', error);
+                    clickedButton.disabled = false;
+                    clickedButton.innerHTML = originalContent;
+                    
+                    // Show error message
+                    let errorMessage = 'Error updating order status. Please try again.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
                     }
-                });
+                    showNotification(errorMessage, 'error');
+                }
+            });
+        }
+
+        // Function to handle delivery status changes
+        function updateDeliveryStatus(orderId, status, statusName) {
+            // Show confirmation dialog
+            if (!confirm(`Are you sure you want to mark this order as "${statusName}"?`)) {
+                return;
+            }
+            
+            // Find the clicked button and disable it
+            let clickedButton = event.target.closest('button');
+            let originalContent = clickedButton.innerHTML;
+            clickedButton.disabled = true;
+            clickedButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Updating...';
+            
+            let baseUrl = '{{ url('/') }}/admin/orders/product-receive';
+            let url = baseUrl + '/' + orderId + '/' + status;
+            
+            console.log('Updating delivery status to:', statusName, 'URL:', url);
+            
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function(response) {
+                    console.log('Delivery status updated successfully');
+                    clickedButton.innerHTML = '<i class="fas fa-check mr-1"></i>Success!';
+                    clickedButton.classList.remove('bg-red-500', 'bg-green-500');
+                    clickedButton.classList.add('bg-green-600');
+                    
+                    // Show success message
+                    showNotification('Delivery status updated successfully!', 'success');
+                    
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1500);
+                },
+                error: function(xhr, status, error) {
+                    console.log('Error updating delivery status:', error);
+                    clickedButton.disabled = false;
+                    clickedButton.innerHTML = originalContent;
+                    
+                    // Show error message
+                    let errorMessage = 'Error updating delivery status. Please try again.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    showNotification(errorMessage, 'error');
+                }
+            });
+        }
+
+        // Function to show notifications
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            let notification = $(`
+                <div class="fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-white font-medium transition-all duration-300 transform translate-x-full opacity-0 ${
+                    type === 'success' ? 'bg-green-500' : 
+                    type === 'error' ? 'bg-red-500' : 
+                    'bg-blue-500'
+                }">
+                    <div class="flex items-center gap-2">
+                        <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                        <span>${message}</span>
+                    </div>
+                </div>
+            `);
+            
+            // Add to body and animate in
+            $('body').append(notification);
+            setTimeout(() => {
+                notification.removeClass('translate-x-full opacity-0');
+            }, 100);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.addClass('translate-x-full opacity-0');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // Add hover effects and animations to status buttons
+        $(document).ready(function() {
+            $('.status-btn').hover(
+                function() {
+                    $(this).addClass('shadow-xl');
+                },
+                function() {
+                    $(this).removeClass('shadow-xl');
+                }
+            );
+        });
+
+        // Real-time countdown timer for order preparation
+        @if($order->status == App\Enums\OrderStatus::PROCESS && $order->process_started_at)
+        let timerInterval;
+        let processStartTime = new Date('{{ $order->process_started_at->toISOString() }}');
+        let estimatedTime = {{ $order->estimated_wait_time }}; // in minutes
+        let orderId = {{ $order->id }};
+        let lastNotificationTime = 0;
+        let isOverdue = false;
+
+        function updateTimer() {
+            let now = new Date();
+            let elapsedSeconds = Math.floor((now - processStartTime) / 1000);
+            let elapsedMinutes = Math.floor(elapsedSeconds / 60);
+            let estimatedSeconds = estimatedTime * 60;
+            let remainingSeconds = Math.max(0, estimatedSeconds - elapsedSeconds);
+            
+            // Calculate remaining time in minutes and seconds
+            let remainingMinutes = Math.floor(remainingSeconds / 60);
+            let remainingSecsOnly = remainingSeconds % 60;
+            
+            // Calculate progress percentage with smooth transitions
+            let progressPercentage = Math.min(100, (elapsedSeconds / estimatedSeconds) * 100);
+            
+            // Format time display (mm:ss)
+            let timeDisplay;
+            if (remainingSeconds <= 0) {
+                let overdueSeconds = elapsedSeconds - estimatedSeconds;
+                let overdueMinutes = Math.floor(overdueSeconds / 60);
+                let overdueSecs = overdueSeconds % 60;
+                timeDisplay = `-${overdueMinutes}:${overdueSecs.toString().padStart(2, '0')}`;
             } else {
-                alert('Please select a status first.');
+                timeDisplay = `${remainingMinutes}:${remainingSecsOnly.toString().padStart(2, '0')}`;
+            }
+            
+            let countdownElement = $('#countdown-' + orderId);
+            let progressBarElement = $('#progress-bar-' + orderId);
+            let progressTextElement = $('#progress-text-' + orderId);
+            let elapsedElement = $('#elapsed-' + orderId);
+            
+            // Smooth animations for updates
+            if (countdownElement.text() !== timeDisplay) {
+                countdownElement.addClass('animate-pulse').text(timeDisplay);
+                setTimeout(() => countdownElement.removeClass('animate-pulse'), 200);
+            }
+            
+            progressTextElement.text(Math.round(progressPercentage) + '%');
+            elapsedElement.text(elapsedMinutes);
+            
+            // Smooth progress bar transition
+            progressBarElement.css({
+                'width': progressPercentage + '%',
+                'transition': 'width 0.5s ease-in-out'
+            });
+            
+            // Dynamic color updates with smooth transitions
+            if (remainingSeconds <= 0) {
+                // Overdue - red and pulsing
+                if (!isOverdue) {
+                    isOverdue = true;
+                    showOverdueNotification();
+                }
+                countdownElement.removeClass('text-green-600 text-orange-500').addClass('text-red-600');
+                progressBarElement.removeClass('bg-green-500 bg-orange-500').addClass('bg-red-500');
+                
+                // Pulse effect for overdue
+                if (Math.floor(elapsedSeconds) % 2 === 0) {
+                    countdownElement.addClass('animate-pulse');
+                } else {
+                    countdownElement.removeClass('animate-pulse');
+                }
+            } else if (remainingSeconds <= 300) { // Last 5 minutes
+                // Almost due - orange
+                countdownElement.removeClass('text-green-600 text-red-600 animate-pulse').addClass('text-orange-500');
+                progressBarElement.removeClass('bg-green-500 bg-red-500').addClass('bg-orange-500');
+            } else {
+                // Normal - green
+                countdownElement.removeClass('text-red-600 text-orange-500 animate-pulse').addClass('text-green-600');
+                progressBarElement.removeClass('bg-red-500 bg-orange-500').addClass('bg-green-500');
+            }
+        }
+
+        function showOverdueNotification() {
+            // Play notification sound (using Web Audio API for better browser support)
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+            } catch (e) {
+                console.log('Audio notification not supported');
+            }
+            
+            // Browser notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('🚨 Order Overdue!', {
+                    body: `Order #{{ $order->order_code }} is overdue. Please check kitchen status.`,
+                    icon: '{{ asset("backend/images/logo.png") }}',
+                    badge: '{{ asset("backend/images/logo.png") }}',
+                    tag: 'overdue-{{ $order->id }}',
+                    requireInteraction: true
+                });
+            }
+            
+            // Enhanced visual notification
+            showNotification('🚨 Order #{{ $order->order_code }} is OVERDUE! Check if ready for pickup.', 'error');
+            
+            // Flash the page title with more dramatic effect
+            let originalTitle = document.title;
+            let flashCount = 0;
+            let flashInterval = setInterval(() => {
+                document.title = flashCount % 2 === 0 ? '🚨 OVERDUE ORDER!' : originalTitle;
+                flashCount++;
+                if (flashCount >= 10) {
+                    clearInterval(flashInterval);
+                    document.title = '🚨 ' + originalTitle;
+                }
+            }, 500);
+            
+            // Add visual glow effect to timer
+            $('#countdown-' + orderId).parent().addClass('overdue-glow');
+        }
+
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        // Start the timer with real-time updates
+        updateTimer(); // Initial call
+        timerInterval = setInterval(updateTimer, 1000); // Update every second for smooth countdown
+
+        // Add smooth animations and enhanced visual effects
+        $('.countdown-display, .progress-bar').css({
+            'transition': 'all 0.3s ease-in-out'
+        });
+        
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    showNotification('✅ Notifications enabled for order updates!', 'success');
+                }
+            });
+        }
+        
+        // Add visual feedback for progress milestones
+        let lastProgressMilestone = 0;
+        let originalUpdateTimer = updateTimer;
+        
+        updateTimer = function() {
+            originalUpdateTimer();
+            
+            // Add milestone notifications
+            let currentProgress = Math.round((new Date() - processStartTime) / (estimatedTime * 60 * 1000) * 100);
+            
+            if (currentProgress >= 50 && lastProgressMilestone < 50) {
+                showNotification('⏰ Order #{{ $order->order_code }} is 50% complete', 'info');
+                lastProgressMilestone = 50;
+            } else if (currentProgress >= 75 && lastProgressMilestone < 75) {
+                showNotification('⚡ Order #{{ $order->order_code }} is 75% complete', 'info');
+                lastProgressMilestone = 75;
+            } else if (currentProgress >= 90 && lastProgressMilestone < 90) {
+                showNotification('🔥 Order #{{ $order->order_code }} is almost ready!', 'info');
+                lastProgressMilestone = 90;
+            }
+        }
+        
+        // Add page visibility change handling
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                // Page is hidden, reduce update frequency to save resources
+                clearInterval(timerInterval);
+                timerInterval = setInterval(updateTimer, 5000); // Update every 5 seconds when hidden
+            } else {
+                // Page is visible, resume full frequency updates
+                clearInterval(timerInterval);
+                timerInterval = setInterval(updateTimer, 1000); // Back to every second
+                updateTimer(); // Immediate update when page becomes visible
             }
         });
 
-        // Handle delivery status submission for delivery boys
-        $('.submitDeliveryChange').on('click', function() {
-            let button = $(this);
-            let dropdown = button.closest('.flex').find('.deliveryStatusDropdown');
-            let orderId = dropdown.data('id');
-            let baseUrl = dropdown.data('base-url');
-            let status = dropdown.val();
-            let url = baseUrl + '/' + orderId + '/' + status;
-            
-            if (status) {
-                button.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin mr-1"></i>Updating...');
-                console.log('Submitting delivery status change to:', status, 'URL:', url);
-                
-                $.ajax({
-                    url: url,
-                    type: 'GET',
-                    success: function(response) {
-                        console.log('Delivery status changed successfully');
-                        button.html('<i class="fa-solid fa-check mr-1"></i>Success!');
-                        setTimeout(function() {
-                            location.reload();
-                        }, 1000);
-                    },
-                    error: function(xhr, status, error) {
-                        console.log('Error changing delivery status:', error);
-                        button.prop('disabled', false).html('<i class="fa-solid fa-truck mr-1"></i>Update Delivery');
-                        alert('Error changing delivery status. Please try again.');
-                    }
-                });
-            } else {
-                alert('Please select a status first.');
+        // Clean up timer when page unloads
+        window.addEventListener('beforeunload', function() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
             }
         });
+        @endif
 
     </script>
     <script src="{{ asset('backend/js/print.js') }}"></script>

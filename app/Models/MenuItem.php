@@ -27,6 +27,7 @@ class MenuItem extends BaseModel implements HasMedia
         'order' => 'int',
         'creator_id' => 'int',
         'editor_id ' => 'int',
+        'wait_time' => 'int',
     ];
     protected $fakeColumns = [];
 
@@ -110,7 +111,6 @@ class MenuItem extends BaseModel implements HasMedia
         }
 
         return $retArray;
-
     }
 
     public function MenuItemWithVariation($restaurant_id, $variation_id = 0)
@@ -154,7 +154,7 @@ class MenuItem extends BaseModel implements HasMedia
 
     public function scopeOwner($query)
     {
-        if(auth()->user()->restaurant){
+        if (auth()->user()->restaurant) {
             $query->where('restaurant_id', auth()->user()->restaurant->id);
         }
     }
@@ -191,5 +191,4 @@ class MenuItem extends BaseModel implements HasMedia
             return '<span class="db-table-badge text-red-600 bg-red-100">' . trans('statuses.' . MenuItemStatus::INACTIVE) . '</span>';
         }
     }
-
 }

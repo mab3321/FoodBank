@@ -50,33 +50,36 @@ class PaymentService
             ];
         }
 
+        // Get tax information from cart
+        $cart = session()->get('cart');
+        $taxAmount = isset($cart['tax_amount']) ? $cart['tax_amount'] : 0;
+        $totalAmountWithTax = (isset($cart['totalAmount']) ? $cart['totalAmount'] : 0) + $delivery_charge + $taxAmount;
+
         if ($request['payment_type'] == PaymentMethod::STRIPE && $paymetSuccess) {
-            $this->data['paid_amount'] = session()->get('cart')['totalAmount'] + $delivery_charge;
+            $this->data['paid_amount'] = $totalAmountWithTax;
             $this->data['payment_method'] = $request['payment_type'];
             $this->data['payment_status'] = PaymentStatus::PAID;
         } elseif ($request['payment_type'] == PaymentMethod::PAYTM) {
-            $this->data['paid_amount'] = session()->get('cart')['totalAmount'] + $delivery_charge;
+            $this->data['paid_amount'] = $totalAmountWithTax;
             $this->data['payment_method'] = $request['payment_type'];
             $this->data['payment_status'] = PaymentStatus::PAID;
-
         } elseif ($request['payment_type'] == PaymentMethod::PHONEPE) {
-            $this->data['paid_amount'] = session()->get('cart')['totalAmount'] + $delivery_charge;
+            $this->data['paid_amount'] = $totalAmountWithTax;
             $this->data['payment_method'] = $request['payment_type'];
             $this->data['payment_status'] = PaymentStatus::PAID;
-
         } elseif ($request['payment_type'] == PaymentMethod::WALLET) {
 
-            $this->data['paid_amount'] = session()->get('cart')['totalAmount'] + $delivery_charge;
+            $this->data['paid_amount'] = $totalAmountWithTax;
             $this->data['payment_method'] = $request['payment_type'];
             $this->data['payment_status'] = PaymentStatus::PAID;
         } elseif ($request['payment_type'] == PaymentMethod::PAYSTACK && $paymetSuccess) {
 
-            $this->data['paid_amount'] = session()->get('cart')['totalAmount'] + $delivery_charge;
+            $this->data['paid_amount'] = $totalAmountWithTax;
             $this->data['payment_method'] = $request['payment_type'];
             $this->data['payment_status'] = PaymentStatus::PAID;
         } elseif ($request['payment_type'] == PaymentMethod::PAYPAL && $paymetSuccess) {
 
-            $this->data['paid_amount'] = session()->get('cart')['totalAmount'] + $delivery_charge;
+            $this->data['paid_amount'] = $totalAmountWithTax;
             $this->data['payment_method'] = $request['payment_type'];
             $this->data['payment_status'] = PaymentStatus::PAID;
         } elseif ($request['payment_type'] == PaymentMethod::RAZORPAY && $paymetSuccess) {
@@ -93,10 +96,12 @@ class PaymentService
             $this->data['payment_status'] = PaymentStatus::UNPAID;
         }
 
-        $cart = session()->get('cart');
-
         $this->data['coupon_id'] = isset($cart['couponID']) ? $cart['couponID'] : null;
         $this->data['coupon_amount'] = isset($cart['coupon_amount']) ? $cart['coupon_amount'] : null;
+
+        // Add tax information to order data
+        $this->data['tax_rate'] = isset($cart['tax_rate']) ? $cart['tax_rate'] : 0;
+        $this->data['tax_amount'] = $taxAmount;
 
         $this->data['items'] = $items;
         $this->data['order_type'] = $order_type;

@@ -25,6 +25,8 @@ class Order extends Model implements HasMedia
         'total',
         'sub_total',
         'delivery_charge',
+        'tax_rate',
+        'tax_amount',
         'status',
         'payment_status',
         'paid_amount',
@@ -35,7 +37,11 @@ class Order extends Model implements HasMedia
         'long',
         'misc',
         'invoice_id',
-        'order_type'
+        'order_type',
+        'process_started_at',
+        'ready_at',
+        'estimated_wait_time',
+        'actual_preparation_time'
     ];
     protected $casts = [
         'status' => 'int',
@@ -45,27 +51,33 @@ class Order extends Model implements HasMedia
         'payment_method' => 'int',
         'user_id' => 'int',
         'restaurant_id' => 'int',
+        'tax_rate' => 'decimal:2',
+        'tax_amount' => 'decimal:2',
         'delivery_boy_id' => 'int',
+        'estimated_wait_time' => 'int',
+        'actual_preparation_time' => 'int',
+        'process_started_at' => 'datetime',
+        'ready_at' => 'datetime',
     ];
 
     public function items()
     {
-        return $this->hasMany(OrderLineItem::class)->with('menuItem','variation')->with('restaurant');
+        return $this->hasMany(OrderLineItem::class)->with('menuItem', 'variation')->with('restaurant');
     }
 
     public function user()
     {
-        return $this->belongsTo(User::class)->with('media','roles');
+        return $this->belongsTo(User::class)->with('media', 'roles');
     }
 
     public function delivery()
     {
-        return $this->belongsTo(User::class, 'delivery_boy_id', 'id')->with('media','roles');
+        return $this->belongsTo(User::class, 'delivery_boy_id', 'id')->with('media', 'roles');
     }
 
     public function discount()
     {
-        return $this->hasOne(Discount::class,'order_id','id');
+        return $this->hasOne(Discount::class, 'order_id', 'id');
     }
 
     public function getOrderCodeAttribute()
@@ -201,14 +213,174 @@ class Order extends Model implements HasMedia
 
     public function getGetOrderTypeNameAttribute()
     {
-        if($this->order_type == OrderTypeStatus::DELIVERY){
+        if ($this->order_type == OrderTypeStatus::DELIVERY) {
             return '<span class="db-table-badge text-green-600 bg-green-100">' . trans('orders_type.' . $this->order_type) . '</span>';
-        } elseif($this->order_type == OrderTypeStatus::PICKUP){
+        } elseif ($this->order_type == OrderTypeStatus::PICKUP) {
             return '<span class="db-table-badge text-yellow-600 bg-yellow-100">' . trans('orders_type.' . $this->order_type) . '</span>';
-        } elseif($this->order_type == OrderTypeStatus::TABLE){
+        } elseif ($this->order_type == OrderTypeStatus::TABLE) {
             return '<span class="db-table-badge text-green-600 bg-green-100">' . trans('orders_type.' . $this->order_type) . '</span>';
         } else {
             return '<span class="db-table-badge text-black bg-gray-200">' . trans('orders_type.' . $this->order_type) . '</span>';
         }
+    }
+
+    /**
+     * Calculate estimated preparation time based on menu items
+     */
+    public function calculateEstimatedWaitTime()
+    {
+        if (!$this->items || $this->items->isEmpty()) {
+            return 15; // Default fallback
+        }
+
+        // Get the maximum wait time from all items in the order
+        $maxWaitTime = $this->items->map(function ($item) {
+            return $item->menuItem->wait_time ?? 15;
+        })->max();
+
+        return $maxWaitTime;
+    }
+
+    /**
+     * Start the preparation timer when order moves to PROCESS status
+     */
+    public function startTimer()
+    {
+        if ($this->status == OrderStatus::PROCESS && !$this->process_started_at) {
+            $this->process_started_at = now();
+            $this->estimated_wait_time = $this->calculateEstimatedWaitTime();
+            $this->save();
+        }
+    }
+
+    /**
+     * Stop the timer and calculate actual preparation time
+     */
+    public function stopTimer()
+    {
+        if ($this->process_started_at && !$this->ready_at) {
+            $this->ready_at = now();
+            $this->actual_preparation_time = $this->process_started_at->diffInMinutes($this->ready_at);
+            $this->save();
+        }
+    }
+
+    /**
+     * Get remaining time in minutes
+     */
+    public function getRemainingTimeAttribute()
+    {
+        if (!$this->process_started_at || !$this->estimated_wait_time) {
+            return 0;
+        }
+
+        $elapsedMinutes = $this->process_started_at->diffInMinutes(now());
+        $remaining = $this->estimated_wait_time - $elapsedMinutes;
+
+        return max(0, $remaining);
+    }
+
+    /**
+     * Get elapsed time in minutes since process started
+     */
+    public function getElapsedTimeAttribute()
+    {
+        if (!$this->process_started_at) {
+            return 0;
+        }
+
+        return $this->process_started_at->diffInMinutes(now());
+    }
+
+    /**
+     * Check if order is overdue
+     */
+    public function getIsOverdueAttribute()
+    {
+        if (!$this->process_started_at || !$this->estimated_wait_time) {
+            return false;
+        }
+
+        return $this->elapsed_time > $this->estimated_wait_time;
+    }
+
+    /**
+     * Get progress percentage (0-100)
+     */
+    public function getProgressPercentageAttribute()
+    {
+        if (!$this->process_started_at || !$this->estimated_wait_time) {
+            return 0;
+        }
+
+        $percentage = ($this->elapsed_time / $this->estimated_wait_time) * 100;
+        return min(100, max(0, round($percentage)));
+    }
+
+    /**
+     * Get formatted remaining time string
+     */
+    public function getFormattedRemainingTimeAttribute()
+    {
+        $minutes = $this->remaining_time;
+
+        if ($minutes <= 0) {
+            return '0:00';
+        }
+
+        $hours = floor($minutes / 60);
+        $mins = $minutes % 60;
+
+        if ($hours > 0) {
+            return sprintf('%d:%02d', $hours, $mins);
+        }
+
+        return sprintf('%d:00', $mins);
+    }
+
+    /**
+     * Get formatted tax rate for display
+     */
+    public function getFormattedTaxRateAttribute()
+    {
+        return number_format($this->tax_rate, 2) . '%';
+    }
+
+    /**
+     * Get formatted tax amount for display
+     */
+    public function getFormattedTaxAmountAttribute()
+    {
+        return currencyFormat($this->tax_amount);
+    }
+
+    /**
+     * Calculate and set tax for this order based on restaurant tax rate
+     */
+    public function calculateAndSetTax()
+    {
+        if ($this->restaurant && $this->restaurant->tax_rate > 0) {
+            $this->tax_rate = $this->restaurant->tax_rate;
+            $this->tax_amount = $this->restaurant->calculateTax($this->sub_total);
+
+            // Update total to include tax
+            $this->total = $this->sub_total + $this->delivery_charge + $this->tax_amount;
+        }
+    }
+
+    /**
+     * Get the total before tax (subtotal + delivery charge)
+     */
+    public function getTotalBeforeTaxAttribute()
+    {
+        return $this->sub_total + $this->delivery_charge;
+    }
+
+    /**
+     * Get the grand total (subtotal + delivery charge + tax)
+     */
+    public function getGrandTotalAttribute()
+    {
+        return $this->sub_total + $this->delivery_charge + $this->tax_amount;
     }
 }

@@ -476,4 +476,63 @@ class OrderController extends BackendController
         }
         return view('admin.orders.live_order_data', $this->data);
     }
+
+    public function preparationAnalytics()
+    {
+        // Get orders with timing data (completed orders with timing information)
+        $completedOrders = Order::whereNotNull('process_started_at')
+            ->whereNotNull('ready_at')
+            ->whereNotNull('actual_preparation_time')
+            ->orderOwner()
+            ->get();
+
+        // Calculate statistics
+        $stats = [
+            'total_orders' => $completedOrders->count(),
+            'avg_actual_time' => $completedOrders->avg('actual_preparation_time') ?? 0,
+            'on_time_count' => $completedOrders->filter(function ($order) {
+                return $order->actual_preparation_time <= $order->estimated_wait_time;
+            })->count(),
+            'overdue_count' => Order::where('status', OrderStatus::PROCESS)
+                ->whereNotNull('process_started_at')
+                ->orderOwner()
+                ->get()
+                ->filter(function ($order) {
+                    return $order->is_overdue;
+                })->count(),
+        ];
+
+        $stats['on_time_percentage'] = $stats['total_orders'] > 0
+            ? ($stats['on_time_count'] / $stats['total_orders']) * 100
+            : 0;
+
+        // Menu item performance analysis
+        $menuItemStats = $completedOrders->flatMap(function ($order) {
+            return $order->items->map(function ($item) use ($order) {
+                return [
+                    'menu_item_id' => $item->menu_item_id,
+                    'name' => $item->menuItem->name,
+                    'estimated_time' => $item->menuItem->wait_time,
+                    'actual_time' => $order->actual_preparation_time,
+                ];
+            });
+        })->groupBy('menu_item_id')->map(function ($items, $menuItemId) {
+            $firstItem = $items->first();
+            return [
+                'name' => $firstItem['name'],
+                'estimated_time' => $firstItem['estimated_time'],
+                'count' => $items->count(),
+                'avg_actual' => $items->avg('actual_time'),
+            ];
+        })->sortByDesc('count')->take(10);
+
+        // Recent orders
+        $recentOrders = Order::whereNotNull('process_started_at')
+            ->orderOwner()
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        return view('admin.analytics.preparation-times', compact('stats', 'menuItemStats', 'recentOrders'));
+    }
 }

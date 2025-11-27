@@ -10,7 +10,7 @@ class BankTableSeeder extends Seeder
     public array $banks = [
         [
             'user_id'        => "4",
-            'bank_name'      => "Dutch Bangla Bank",
+            'bank_name'      => "Habib Bank Limited",
             'bank_code'      => "DBBLBDDH107",
             'recipient_name' => "Fabian C. Williams",
             'account_number' => "234867868345",
@@ -24,7 +24,8 @@ class BankTableSeeder extends Seeder
      * @return void
      */
 
-    public function run(){
+    public function run()
+    {
         if (env('DEMO_MODE')) {
             foreach ($this->banks as $bank) {
                 Bank::create([

@@ -116,7 +116,7 @@
                                             <input id="address" name="address" value="{{ old('address') }}"
                                                 type="text"
                                                 class="form-control @if ($errors->has('address')) is-invalid @endif"
-                                                placeholder="House#10, Section#1, Dhaka 1216, Bangladesh">
+                                                placeholder="House#10, Block A, Karachi 75500, Pakistan">
                                         </div>
                                     </div>
                                     <div class="col-12 col-sm-6">

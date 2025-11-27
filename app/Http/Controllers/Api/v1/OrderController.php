@@ -57,6 +57,30 @@ class OrderController extends Controller
             $post['updated_at_convert']  = food_date_format($post->updated_at);
             $post['deliveryBoy']         = $post->delivery_boy_id == null ? null : new UserResource($post->delivery);
 
+            // Add timer information for processing orders
+            if ($post->status == OrderStatus::PROCESS && $post->process_started_at) {
+                $post['timer'] = [
+                    'process_started_at' => $post->process_started_at->toISOString(),
+                    'estimated_wait_time' => $post->estimated_wait_time,
+                    'remaining_time' => $post->remaining_time,
+                    'elapsed_time' => $post->elapsed_time,
+                    'is_overdue' => $post->is_overdue,
+                    'progress_percentage' => $post->progress_percentage,
+                    'formatted_remaining_time' => $post->formatted_remaining_time
+                ];
+            } else if ($post->process_started_at && $post->ready_at) {
+                // Completed order with timing data
+                $post['timer'] = [
+                    'process_started_at' => $post->process_started_at->toISOString(),
+                    'ready_at' => $post->ready_at->toISOString(),
+                    'estimated_wait_time' => $post->estimated_wait_time,
+                    'actual_preparation_time' => $post->actual_preparation_time,
+                    'was_on_time' => $post->actual_preparation_time <= $post->estimated_wait_time
+                ];
+            } else {
+                $post['timer'] = null;
+            }
+
             foreach ($post['items'] as $itemKey => $item) {
                 $post['items'][$itemKey]['created_at_convert'] = food_date_format($post->created_at);
                 $post['items'][$itemKey]['updated_at_convert'] = food_date_format($post->updated_at);

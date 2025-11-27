@@ -232,6 +232,22 @@
                                         <small class="db-field-alert">{{ $message }}</small>
                                         @enderror
                                     </div>
+
+                                    <div class="col-12">
+                                        <label class="db-field-title required">{{ __('levels.tax_rate') }} (%)</label>
+                                        <div class="db-field-control-wrap">
+                                            <input type="number" name="tax_rate" step="0.01" min="0" max="100"
+                                                class="db-field-control @error('tax_rate') invalid @enderror"
+                                                placeholder="{{ __('levels.tax_rate') }}"
+                                                value="{{ old('tax_rate', '17.00') }}">
+                                            <span class="db-field-icon">
+                                                <i class="fa-solid fa-percent"></i>
+                                            </span>
+                                        </div>
+                                        @error('tax_rate')
+                                        <small class="db-field-alert">{{ $message }}</small>
+                                        @enderror
+                                    </div>
             
                                     <div class="col-12 mt-4">
                                         <button type="submit" class="db-btn text-white bg-primary">

@@ -79,6 +79,7 @@ class MenuItemController extends BackendController
         $menuItem->unit_price     = $request->get('unit_price');
         $menuItem->discount_price = $request->get('discount_price') ?? 0;
         $menuItem->status         = $request->get('status');
+        $menuItem->wait_time      = $request->get('wait_time');
         $menuItem->menu_number         = $menuNumber;
         $menuItem->save();
 
@@ -134,12 +135,13 @@ class MenuItemController extends BackendController
         $menuItem->unit_price     = $request->get('unit_price');
         $menuItem->discount_price = $request->get('discount_price') ?? 0;
         $menuItem->status         = $request->get('status');
+        $menuItem->wait_time      = $request->get('wait_time');
         $menuItem->save();
 
         $menuItem->categories()->sync($request->get('categories'));
 
         //Update Image
-        if ($request->hasFile('image') && $request->file('image')->isValid()) { 
+        if ($request->hasFile('image') && $request->file('image')->isValid()) {
             $menuItem->deleteMedia('menu-items', $menuItem->id);
             $menuItem->addMediaFromRequest('image')->toMediaCollection('menu-items');
         }
@@ -166,8 +168,8 @@ class MenuItemController extends BackendController
             if (!empty($request->status) && (int) $request->status) {
                 $queryArray['status'] = $request->status;
             }
-            if (auth()->user()->myrole != 1 && auth()->user()->restaurant){
-                $queryArray['restaurant_id'] =auth()->user()->restaurant->id;
+            if (auth()->user()->myrole != 1 && auth()->user()->restaurant) {
+                $queryArray['restaurant_id'] = auth()->user()->restaurant->id;
             }
 
             if (!blank($queryArray)) {
@@ -180,11 +182,11 @@ class MenuItemController extends BackendController
             return Datatables::of($menuItems)
                 ->addColumn('action', function ($menuItem) {
                     $button_array           = [];
-                    $button_array['modify'] = ['route' => route('admin.menu-items.modify', $menuItem),'permission' => 'menu-items_edit'];
-                    $button_array['view']   = ['route' => route('admin.menu-items.show', $menuItem),'permission' => 'menu-items_show'];
-                    $button_array['edit']   = ['route' => route('admin.menu-items.edit', $menuItem),'permission' => 'menu-items_edit'];
-                    $button_array['delete'] = ['route' => route('admin.menu-items.destroy', $menuItem),'permission' => 'menu-items_delete'];
-                    
+                    $button_array['modify'] = ['route' => route('admin.menu-items.modify', $menuItem), 'permission' => 'menu-items_edit'];
+                    $button_array['view']   = ['route' => route('admin.menu-items.show', $menuItem), 'permission' => 'menu-items_show'];
+                    $button_array['edit']   = ['route' => route('admin.menu-items.edit', $menuItem), 'permission' => 'menu-items_edit'];
+                    $button_array['delete'] = ['route' => route('admin.menu-items.destroy', $menuItem), 'permission' => 'menu-items_delete'];
+
                     return action_button($button_array);
                 })
                 ->editColumn('id', function ($menuItem) use (&$i) {
@@ -202,7 +204,7 @@ class MenuItemController extends BackendController
                 ->editColumn('status', function ($menuItem) {
                     return $menuItem->statusName;
                 })
-                ->rawColumns(['name' ,'status', 'action'])
+                ->rawColumns(['name', 'status', 'action'])
                 ->make(true);
         }
         return view('admin.menu-item.index', $this->data);
@@ -388,7 +390,6 @@ class MenuItemController extends BackendController
             $menuItem->unit_price     = $smallPrice;
             $menuItem->discount_price = $smallDiscountPrice ?? 0;
             $menuItem->save();
-
         } else {
             MenuItemVariation::where(['menu_item_id' => $menuItem->id, 'restaurant_id' => $menuItem->restaurant_id])->delete();
         }

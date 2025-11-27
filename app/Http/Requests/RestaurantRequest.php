@@ -62,10 +62,12 @@ class RestaurantRequest extends FormRequest
             'address'           => ['required', 'max:200'],
             'userstatus'        => ['required', 'numeric'],
             'waiter_status'     => ['required', 'numeric'],
+            'tax_rate'          => ['required', 'numeric', 'min:0', 'max:100'],
         ];
     }
 
-    public function messages () {
+    public function messages()
+    {
         return [
             'image.image'           => 'Please upload a valid image file (e.g., jpg, png, jpeg)',
             'restaurant_logo.image' => 'Please upload a valid image file (e.g., jpg, png, jpeg)',
@@ -95,6 +97,7 @@ class RestaurantRequest extends FormRequest
             'cuisines'          => trans('validation.attributes.cuisines'),
             'image'             => trans('validation.attributes.image'),
             'restaurant_logo'   => trans('validation.attributes.restaurant_logo'),
+            'tax_rate'          => trans('validation.attributes.tax_rate'),
         ];
     }
 }

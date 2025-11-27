@@ -78,28 +78,13 @@ function getLatLongPosition(latitude, longitude) {
         });
 
 
-        let dis = distance(parseFloat(locationLat), parseFloat(locationLong), latLng.lat, latLng.lng)
-        var delivery_charge = basicCharge;
-
-        if (dis > freeZone) {
-            dis = dis - parseFloat(freeZone);
-            delivery_charge = dis * chragePerKilo + parseFloat(basicCharge);
-        }
-
-        if(orderType){
-             total = subtotal - parseInt(couponAmount);
-        }else {
-             total = (subtotal - parseInt(couponAmount) ) + parseInt(delivery_charge);
-        }
-
+        // Pickup-only restaurant - no delivery charges
+        total = subtotal - parseInt(couponAmount);
+        
         sessionStorage.removeItem('charge');
         $('#lat').val(latLng.lat);
         $('#long').val(latLng.lng);
-        $('#delivery_chearge').text(parseInt(delivery_charge));
         $('#total').text(parseFloat(total).toFixed(2));
-        $('#total_delivery_charge').val(parseInt(delivery_charge));
-
-         sessionStorage.setItem('charge',delivery_charge);
          const mode = sessionStorage.getItem('charge');
         // console.log(mode);
 
@@ -116,27 +101,12 @@ function getLatLongPosition(latitude, longitude) {
 
     });
 
-    let dis = distance(locationLat, locationLong, latitude, longitude)
-    var delivery_charge = basicCharge;
-
-    if (dis > freeZone) {
-        dis = dis - parseFloat(freeZone);
-        delivery_charge = dis * chragePerKilo + parseFloat(basicCharge);
-    }
-
-    total = 0;
-    if(orderType){
-        total = subtotal - parseInt(couponAmount);
-    }else {
-        total = (subtotal- parseInt(couponAmount) ) + parseInt(delivery_charge);
-    }
+    // Pickup-only restaurant - no delivery charges
+    total = subtotal - parseInt(couponAmount);
     sessionStorage.removeItem('charge');
-    $('#delivery_chearge').text(parseInt(delivery_charge));
     $('#total').text(parseFloat(total).toFixed(2));
-    $('#total_delivery_charge').val(parseInt(delivery_charge));
     $('#lat').val(latitude);
     $('#long').val(longitude);
-    sessionStorage.setItem('charge',delivery_charge);
     const mode = sessionStorage.getItem('charge');
     // console.log(mode);
 
@@ -271,7 +241,6 @@ function showGetPosition(lat, long) {
 function editBtn(id) {
     let editurl = $('#edit' + id).attr('data-url');
     let updateurl = $('#edit' + id).attr('data-attr');
-    localStorage.setItem("total_delivery_charge", $('#total_delivery_charge').val());
 
     $.ajax({
         type: 'GET',
@@ -335,26 +304,14 @@ if ($('.check-errors1').text() != "" || $('.check-errors2').text() != "") {
 }
 
 function modalshow(href) {
-    localStorage.setItem("total_delivery_charge", $('#total_delivery_charge').val());
     $('#addressModal').modal('show');
     $("#addressForm").attr('action', href);
 }
 
 $(document).on('click', '#modalClose', function (event) {
-    const prevDeliveryCharge = localStorage.getItem("total_delivery_charge");
-    let total = 0;
-    if(orderType){
-        total = subtotal - parseInt(couponAmount);
-    }else {
-        total = (subtotal - parseInt(couponAmount) ) + parseInt(prevDeliveryCharge);
-    }
-
-    $('#delivery_chearge').text(parseInt(prevDeliveryCharge));
+    // Pickup-only restaurant - no delivery charges
+    let total = subtotal - parseInt(couponAmount);
     $('#total').text(parseFloat(total).toFixed(2));
-    $('#total_delivery_charge').val(parseInt(prevDeliveryCharge));
-
-    window.localStorage.removeItem("total_delivery_charge");
-
 });
 
 
@@ -398,26 +355,9 @@ function distance(lat1, lon1, lat2, lon2) {
 
 function deliveryAddress(latitude, longitude) {
     sessionStorage.removeItem('charge');
-    let dis = distance(locationLat, locationLong, latitude, longitude);
-    var delivery_charge = basicCharge;
-
-    if (dis > freeZone) {
-        dis = dis - parseFloat(freeZone);
-        delivery_charge = dis * chragePerKilo + parseFloat(basicCharge);
-    }
-
-    let total = 0;
-    if(orderType){
-        total = subtotal - parseInt(couponAmount);
-    }else {
-        total = (subtotal - parseInt(couponAmount) ) + parseInt(delivery_charge);
-    }
-
-
-    $('#delivery_chearge').text(parseInt(delivery_charge));
+    // Pickup-only restaurant - no delivery charges
+    let total = subtotal - parseInt(couponAmount);
     $('#total').text(parseFloat(total).toFixed(2));
-    $('#total_delivery_charge').val(parseInt(delivery_charge));
-    sessionStorage.setItem('charge',delivery_charge);
     const mode = sessionStorage.getItem('charge');
     // console.log(mode);
 }

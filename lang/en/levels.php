@@ -5,6 +5,7 @@ return array(
   'slug'                              => 'Slug',
   'status'                            => 'Status',
   'taxable'                           => 'Taxable',
+  'tax_rate'                          => 'Tax Rate',
   'location'                          => 'Location',
   'description'                       => 'Description',
   'site_short_description'            => 'Site Short Description',

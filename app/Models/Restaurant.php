@@ -43,6 +43,7 @@ class Restaurant extends BaseModel implements HasMedia
         'applied' => 'int',
         'creator_id' => 'int',
         'editor_id ' => 'int',
+        'tax_rate' => 'decimal:2',
     ];
 
     public function getRouteKeyName()
@@ -219,5 +220,45 @@ class Restaurant extends BaseModel implements HasMedia
         } else if ($this->status == Status::INACTIVE) {
             return '<span class="db-table-badge text-red-600 bg-red-100">' . trans('statuses.' . Status::INACTIVE) . '</span>';
         }
+    }
+
+    /**
+     * Calculate tax amount for a given subtotal
+     *
+     * @param float $subtotal
+     * @return float
+     */
+    public function calculateTax($subtotal)
+    {
+        return round(($subtotal * $this->tax_rate) / 100, 2);
+    }
+
+    /**
+     * Get the formatted tax rate for display
+     *
+     * @return string
+     */
+    public function getFormattedTaxRateAttribute()
+    {
+        return number_format($this->tax_rate, 2) . '%';
+    }
+
+    /**
+     * Calculate total including tax for a given subtotal
+     *
+     * @param float $subtotal
+     * @return array
+     */
+    public function calculateTotalsWithTax($subtotal)
+    {
+        $taxAmount = $this->calculateTax($subtotal);
+        $totalWithTax = $subtotal + $taxAmount;
+
+        return [
+            'subtotal' => $subtotal,
+            'tax_rate' => $this->tax_rate,
+            'tax_amount' => $taxAmount,
+            'total_with_tax' => $totalWithTax
+        ];
     }
 }
