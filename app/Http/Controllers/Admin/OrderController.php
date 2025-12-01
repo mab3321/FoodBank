@@ -280,7 +280,7 @@ class OrderController extends BackendController
                     return currencyFormat($order->total);
                 })
                 ->editColumn('status', function ($order) {
-                    $statusHtml = '<span class="badge ' . $order['statusColor'] . '">' . trans($order->statusName) . '</span>';
+                    $statusHtml = $order->statusName; // Already contains HTML with proper translation
 
                     // Add status change dropdown for restaurant owners and admins
                     if ($order['statusData'] && !empty($order['drop'])) {

@@ -86,6 +86,7 @@ return array(
   'your_order_from'                 => 'Your order from',
   'subtotal'                        => 'Subtotal',
   'tax'                             => 'Tax',
+  'service_fee'                     => 'Service Fee',
   'delivery_charge'                 => 'Delivery Charge',
   'total'                           => 'Total',
   'continue'                        => 'CONTINUE',

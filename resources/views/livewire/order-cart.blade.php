@@ -129,6 +129,13 @@
                         </li>
                     @endif
 
+                    @if (!blank($carts) && isset($carts['service_fee_amount']) && $carts['service_fee_amount'] > 0)
+                        <li class="cart-amount-item">
+                            <span>{{ __('frontend.service_fee') }} ({{ $carts['service_fee_rate'] }}%)</span>
+                            <span>{{ setting('currency_code') }}{{ number_format($carts['service_fee_amount'], 2) }}</span>
+                        </li>
+                    @endif
+
                     <li class="cart-amount-item">
                         <span>{{ __('frontend.total') }}</span>
                         <span>{{ setting('currency_code') }}{{ $totalPayAmount }} </span>

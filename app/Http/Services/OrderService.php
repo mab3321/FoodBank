@@ -481,9 +481,10 @@ class OrderService
                 ]);
             }
         }
-        // Calculate total with tax
+        // Calculate total with tax and service fee
         $taxAmount = isset($data['tax_amount']) ? $data['tax_amount'] : 0;
-        $totalWithTax = $data['total'] + $data['delivery_charge'] + $taxAmount;
+        $serviceFeeAmount = isset($data['service_fee_amount']) ? $data['service_fee_amount'] : 0;
+        $totalWithTax = $data['total'] + $data['delivery_charge'] + $taxAmount + $serviceFeeAmount;
 
         $order = [
             'user_id'         => $data['user_id'],
@@ -493,6 +494,8 @@ class OrderService
             'delivery_charge' => $data['delivery_charge'],
             'tax_rate'        => isset($data['tax_rate']) ? $data['tax_rate'] : 0,
             'tax_amount'      => $taxAmount,
+            'service_fee_rate' => isset($data['service_fee_rate']) ? $data['service_fee_rate'] : 0,
+            'service_fee_amount' => $serviceFeeAmount,
             'status'          => OrderStatus::PENDING,
             'order_type'      => $data['order_type'],
             'address'         => $address,

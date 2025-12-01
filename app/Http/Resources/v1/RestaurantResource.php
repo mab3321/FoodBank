@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Resources\v1;
+
 use Carbon\Carbon;
 
 
@@ -26,6 +27,10 @@ class RestaurantResource extends JsonResource
             "delivery_charge"      => setting('basic_delivery_charge'),
             "free_delivery_radius" => setting('free_delivery_radius'),
             "charge_per_kilo"      => setting('charge_per_kilo'),
+            "tax_rate"             => $this->tax_rate ?? 17.00,
+            "formatted_tax_rate"   => $this->formatted_tax_rate ?? '17.00%',
+            "service_fee_rate"     => $this->service_fee_rate ?? 0.00,
+            "formatted_service_fee_rate" => $this->formatted_service_fee_rate ?? '0.00%',
             "lat"                  => $this->lat,
             "long"                 => $this->long,
             "opening_time"         => Carbon::parse($this->opening_time)->format('h:i A'),
@@ -42,7 +47,5 @@ class RestaurantResource extends JsonResource
             "logo"                 => $this->logo,
             "cuisines"             => CuisineResource::collection($this->cuisines),
         ];
-
     }
-
 }

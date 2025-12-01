@@ -50,10 +50,11 @@ class PaymentService
             ];
         }
 
-        // Get tax information from cart
+        // Get tax and service fee information from cart
         $cart = session()->get('cart');
         $taxAmount = isset($cart['tax_amount']) ? $cart['tax_amount'] : 0;
-        $totalAmountWithTax = (isset($cart['totalAmount']) ? $cart['totalAmount'] : 0) + $delivery_charge + $taxAmount;
+        $serviceFeeAmount = isset($cart['service_fee_amount']) ? $cart['service_fee_amount'] : 0;
+        $totalAmountWithTax = (isset($cart['totalAmount']) ? $cart['totalAmount'] : 0) + $delivery_charge + $taxAmount + $serviceFeeAmount;
 
         if ($request['payment_type'] == PaymentMethod::STRIPE && $paymetSuccess) {
             $this->data['paid_amount'] = $totalAmountWithTax;
@@ -99,9 +100,11 @@ class PaymentService
         $this->data['coupon_id'] = isset($cart['couponID']) ? $cart['couponID'] : null;
         $this->data['coupon_amount'] = isset($cart['coupon_amount']) ? $cart['coupon_amount'] : null;
 
-        // Add tax information to order data
+        // Add tax and service fee information to order data
         $this->data['tax_rate'] = isset($cart['tax_rate']) ? $cart['tax_rate'] : 0;
         $this->data['tax_amount'] = $taxAmount;
+        $this->data['service_fee_rate'] = isset($cart['service_fee_rate']) ? $cart['service_fee_rate'] : 0;
+        $this->data['service_fee_amount'] = $serviceFeeAmount;
 
         $this->data['items'] = $items;
         $this->data['order_type'] = $order_type;

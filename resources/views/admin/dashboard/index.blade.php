@@ -713,16 +713,18 @@
                                 <div class="db-card-body">
                                     <ul class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                         @forelse ($topCustomers as $customer)
-                                            <li class="w-full rounded-xl pt-3 border border-[#D9DBE9] relative" style="padding-bottom: 24px;">
-                                                <img class="w-12 mx-auto rounded-full mb-2"
-                                                    src="{{ $customer->user->image }}" alt="avatar">
-                                                <h4
-                                                    class="text-sm px-3 text-center font-medium capitalize mb-4 whitespace-nowrap overflow-hidden text-ellipsis">
-                                                    {{ $customer->user->name }}</h4>
-                                                <p
-                                                    class="text-xs w-full tracking-wide text-center py-1 rounded-t rounded-b-[11px] text-white bg-[#008BBA] absolute bottom-0">
-                                                    {{ $customer->total_orders }} {{ __('dashboard.orders') }}</p>
-                                            </li>
+                                            @if ($customer->user)
+                                                <li class="w-full rounded-xl pt-3 border border-[#D9DBE9] relative" style="padding-bottom: 24px;">
+                                                    <img class="w-12 mx-auto rounded-full mb-2"
+                                                        src="{{ $customer->user->image }}" alt="avatar">
+                                                    <h4
+                                                        class="text-sm px-3 text-center font-medium capitalize mb-4 whitespace-nowrap overflow-hidden text-ellipsis">
+                                                        {{ $customer->user->name }}</h4>
+                                                    <p
+                                                        class="text-xs w-full tracking-wide text-center py-1 rounded-t rounded-b-[11px] text-white bg-[#008BBA] absolute bottom-0">
+                                                        {{ $customer->total_orders }} {{ __('dashboard.orders') }}</p>
+                                                </li>
+                                            @endif
                                         @empty
                                         @endforelse
                                     </ul>
@@ -799,21 +801,23 @@
                                 <div class="db-card-body">
                                     <ul class="grid grid-cols-1 sm:grid-cols-2 gap-[18px]">
                                         @forelse ($mostPopularItems as $item)
-                                            <li class="w-full flex rounded-xl border border-[#D9DBE9]">
-                                                <img class="flex w-20 h-20 object-cover rounded-l-[11px]"
-                                                    src="{{ $item->menuItem->image }}" alt="product">
-                                                <div class="py-2 px-3 flex flex-col justify-between overflow-hidden">
-                                                    <h4
-                                                        class="text-sm overflow-hidden whitespace-nowrap text-ellipsis font-medium capitalize">
-                                                        {{ $item->menuItem->name }}</h4>
-                                                    <h5 class="text-xs font-medium capitalize text-[#008BBA]">
-                                                        {{ mb_strimwidth($item->menuItem->categories->pluck('name')->join(', '), 0, 35, ' ..') }}
+                                            @if ($item->menuItem)
+                                                <li class="w-full flex rounded-xl border border-[#D9DBE9]">
+                                                    <img class="flex w-20 h-20 object-cover rounded-l-[11px]"
+                                                        src="{{ $item->menuItem->image }}" alt="product">
+                                                    <div class="py-2 px-3 flex flex-col justify-between overflow-hidden">
+                                                        <h4
+                                                            class="text-sm overflow-hidden whitespace-nowrap text-ellipsis font-medium capitalize">
+                                                            {{ $item->menuItem->name }}</h4>
+                                                        <h5 class="text-xs font-medium capitalize text-[#008BBA]">
+                                                            {{ mb_strimwidth($item->menuItem->categories->pluck('name')->join(', '), 0, 35, ' ..') }}
                                                     </h5>
-                                                    <h6 class="text-sm font-bold">
-                                                        {{ setting('currency_code') . ' ' . $item->menuItem->unit_price }}
-                                                    </h6>
-                                                </div>
-                                            </li>
+                                                        <h6 class="text-sm font-bold">
+                                                            {{ setting('currency_code') . ' ' . $item->menuItem->unit_price }}
+                                                        </h6>
+                                                    </div>
+                                                </li>
+                                            @endif
                                         @empty
                                         @endforelse
                                     </ul>

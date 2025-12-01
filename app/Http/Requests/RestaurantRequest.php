@@ -63,6 +63,7 @@ class RestaurantRequest extends FormRequest
             'userstatus'        => ['required', 'numeric'],
             'waiter_status'     => ['required', 'numeric'],
             'tax_rate'          => ['required', 'numeric', 'min:0', 'max:100'],
+            'service_fee_rate'  => ['required', 'numeric', 'min:0', 'max:100'],
         ];
     }
 
@@ -98,6 +99,7 @@ class RestaurantRequest extends FormRequest
             'image'             => trans('validation.attributes.image'),
             'restaurant_logo'   => trans('validation.attributes.restaurant_logo'),
             'tax_rate'          => trans('validation.attributes.tax_rate'),
+            'service_fee_rate'  => trans('validation.attributes.service_fee_rate'),
         ];
     }
 }

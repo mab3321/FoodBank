@@ -27,6 +27,8 @@ class Order extends Model implements HasMedia
         'delivery_charge',
         'tax_rate',
         'tax_amount',
+        'service_fee_rate',
+        'service_fee_amount',
         'status',
         'payment_status',
         'paid_amount',
@@ -53,6 +55,8 @@ class Order extends Model implements HasMedia
         'restaurant_id' => 'int',
         'tax_rate' => 'decimal:2',
         'tax_amount' => 'decimal:2',
+        'service_fee_rate' => 'decimal:2',
+        'service_fee_amount' => 'decimal:2',
         'delivery_boy_id' => 'int',
         'estimated_wait_time' => 'int',
         'actual_preparation_time' => 'int',
@@ -355,16 +359,41 @@ class Order extends Model implements HasMedia
     }
 
     /**
-     * Calculate and set tax for this order based on restaurant tax rate
+     * Get formatted service fee rate for display
+     */
+    public function getFormattedServiceFeeRateAttribute()
+    {
+        return number_format($this->service_fee_rate, 2) . '%';
+    }
+
+    /**
+     * Get formatted service fee amount for display
+     */
+    public function getFormattedServiceFeeAmountAttribute()
+    {
+        return currencyFormat($this->service_fee_amount);
+    }
+
+    /**
+     * Calculate and set tax and service fee for this order based on restaurant rates
      */
     public function calculateAndSetTax()
     {
-        if ($this->restaurant && $this->restaurant->tax_rate > 0) {
-            $this->tax_rate = $this->restaurant->tax_rate;
-            $this->tax_amount = $this->restaurant->calculateTax($this->sub_total);
+        if ($this->restaurant) {
+            // Calculate tax
+            if ($this->restaurant->tax_rate > 0) {
+                $this->tax_rate = $this->restaurant->tax_rate;
+                $this->tax_amount = $this->restaurant->calculateTax($this->sub_total);
+            }
 
-            // Update total to include tax
-            $this->total = $this->sub_total + $this->delivery_charge + $this->tax_amount;
+            // Calculate service fee
+            if ($this->restaurant->service_fee_rate > 0) {
+                $this->service_fee_rate = $this->restaurant->service_fee_rate;
+                $this->service_fee_amount = $this->restaurant->calculateServiceFee($this->sub_total);
+            }
+
+            // Update total to include tax and service fee
+            $this->total = $this->sub_total + $this->delivery_charge + $this->tax_amount + $this->service_fee_amount;
         }
     }
 

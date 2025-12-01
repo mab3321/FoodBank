@@ -510,6 +510,13 @@
                                 <span class="text-sm leading-6 capitalize font-semibold text-[#1AB759]">{{ currencyFormat($order->tax_amount) }}</span>
                             </li>
                             @endif
+
+                            @if ($order->service_fee_amount > 0)
+                            <li class="flex items-center justify-between text-heading">
+                                <span class="text-sm leading-6 capitalize">{{ __('levels.service_fee') }} ({{ $order->formatted_service_fee_rate }})</span>
+                                <span class="text-sm leading-6 capitalize font-semibold text-[#1AB759]">{{ currencyFormat($order->service_fee_amount) }}</span>
+                            </li>
+                            @endif
                         </ul>
                         <div class="flex items-center justify-between py-3 border-t border-dashed border-[#EFF0F6]">
                             <h4 class="text-sm leading-6 font-bold capitalize">{{ __('levels.total') }}</h4>
@@ -743,6 +750,13 @@
                             <tr>
                                 <td class="text-start"> {{ __('frontend.tax') }} ({{ $order->formatted_tax_rate }}): </td>
                                 <td class="text-end align-top"> {{ currencyFormat($order->tax_amount) }}</td>
+                            </tr>
+                        @endif
+
+                        @if ($order->service_fee_amount > 0)
+                            <tr>
+                                <td class="text-start"> {{ __('frontend.service_fee') }} ({{ $order->formatted_service_fee_rate }}): </td>
+                                <td class="text-end align-top"> {{ currencyFormat($order->service_fee_amount) }}</td>
                             </tr>
                         @endif
 

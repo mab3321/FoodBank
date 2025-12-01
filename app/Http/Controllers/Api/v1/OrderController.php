@@ -84,7 +84,11 @@ class OrderController extends Controller
             foreach ($post['items'] as $itemKey => $item) {
                 $post['items'][$itemKey]['created_at_convert'] = food_date_format($post->created_at);
                 $post['items'][$itemKey]['updated_at_convert'] = food_date_format($post->updated_at);
-                $post['items'][$itemKey]['menuItem']['image']  = $item['menuItem']->image;
+                if ($item['menuItem']) {
+                    $post['items'][$itemKey]['menuItem']['image'] = $item['menuItem']->image;
+                } else {
+                    $post['items'][$itemKey]['menuItem'] = null;
+                }
             }
             return $post;
         });
@@ -160,6 +164,13 @@ class OrderController extends Controller
                 }
             }
 
+            // Calculate tax and service fee based on restaurant rates
+            $restaurant = \App\Models\Restaurant::find($request->restaurant_id);
+            $taxRate = $restaurant ? $restaurant->tax_rate : 0;
+            $serviceFeeRate = $restaurant ? $restaurant->service_fee_rate : 0;
+            $taxAmount = $taxRate > 0 ? round(($request->total * $taxRate) / 100, 2) : 0;
+            $serviceFeeAmount = $serviceFeeRate > 0 ? round(($request->total * $serviceFeeRate) / 100, 2) : 0;
+
             $request->request->add([
                 'items'           => $items,
                 'order_type'      => $request->order_type,
@@ -167,6 +178,10 @@ class OrderController extends Controller
                 'user_id'         => auth()->user()->id,
                 'total'           => $request->total,
                 'delivery_charge' => $request->delivery_charge,
+                'tax_rate'        => $taxRate,
+                'tax_amount'      => $taxAmount,
+                'service_fee_rate' => $serviceFeeRate,
+                'service_fee_amount' => $serviceFeeAmount,
             ]);
 
             if (($request->paid_amount == '' || $request->paid_amount == 0) || $request->payment_method == PaymentMethod::CASH_ON_DELIVERY) {

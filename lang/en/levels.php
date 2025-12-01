@@ -6,6 +6,8 @@ return array(
   'status'                            => 'Status',
   'taxable'                           => 'Taxable',
   'tax_rate'                          => 'Tax Rate',
+  'service_fee_rate'                  => 'Service Fee Rate',
+  'service_fee'                       => 'Service Fee',
   'location'                          => 'Location',
   'description'                       => 'Description',
   'site_short_description'            => 'Site Short Description',

@@ -44,6 +44,7 @@ class Restaurant extends BaseModel implements HasMedia
         'creator_id' => 'int',
         'editor_id ' => 'int',
         'tax_rate' => 'decimal:2',
+        'service_fee_rate' => 'decimal:2',
     ];
 
     public function getRouteKeyName()
@@ -244,7 +245,28 @@ class Restaurant extends BaseModel implements HasMedia
     }
 
     /**
-     * Calculate total including tax for a given subtotal
+     * Calculate service fee for a given amount
+     *
+     * @param float $amount
+     * @return float
+     */
+    public function calculateServiceFee($amount)
+    {
+        return $this->service_fee_rate > 0 ? round(($amount * $this->service_fee_rate) / 100, 2) : 0;
+    }
+
+    /**
+     * Get formatted service fee rate for display
+     *
+     * @return string
+     */
+    public function getFormattedServiceFeeRateAttribute()
+    {
+        return number_format($this->service_fee_rate, 2) . '%';
+    }
+
+    /**
+     * Calculate total including tax and service fee for a given subtotal
      *
      * @param float $subtotal
      * @return array
@@ -252,12 +274,15 @@ class Restaurant extends BaseModel implements HasMedia
     public function calculateTotalsWithTax($subtotal)
     {
         $taxAmount = $this->calculateTax($subtotal);
-        $totalWithTax = $subtotal + $taxAmount;
+        $serviceFeeAmount = $this->calculateServiceFee($subtotal);
+        $totalWithTax = $subtotal + $taxAmount + $serviceFeeAmount;
 
         return [
             'subtotal' => $subtotal,
             'tax_rate' => $this->tax_rate,
             'tax_amount' => $taxAmount,
+            'service_fee_rate' => $this->service_fee_rate,
+            'service_fee_amount' => $serviceFeeAmount,
             'total_with_tax' => $totalWithTax
         ];
     }

@@ -109,6 +109,7 @@ class RestaurantController extends BackendController
         $restaurant->table_status    = $request->table_status;
         $restaurant->status          = $request->status;
         $restaurant->tax_rate        = $request->tax_rate ?? 17.00;
+        $restaurant->service_fee_rate = $request->service_fee_rate ?? 0.00;
         if ($user->status == UserStatus::INACTIVE) {
             $restaurant->status = RestaurantStatus::INACTIVE;
         }
@@ -204,6 +205,7 @@ class RestaurantController extends BackendController
                 $restaurant->table_status    = $request->table_status;
                 $restaurant->status          = $request->status;
                 $restaurant->tax_rate        = $request->tax_rate ?? 17.00;
+                $restaurant->service_fee_rate = $request->service_fee_rate ?? 0.00;
                 if ($user->status == UserStatus::INACTIVE) {
                     $restaurant->status = RestaurantStatus::INACTIVE;
                 }

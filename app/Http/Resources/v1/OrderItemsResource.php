@@ -26,8 +26,8 @@ class OrderItemsResource extends JsonResource
             'item_total'        => $this->item_total,
             'created_at'        => $this->created_at->format('d M Y, h:i A'),
             'updated_at'        => $this->updated_at->format('d M Y, h:i A'),
-            'menu_item'        => new MenuItemResource($this->menuItem),
-            'menu_item_variation' => new MenuItemVariationResource($this->variation),
+            'menu_item'        => $this->menuItem ? new MenuItemResource($this->menuItem) : null,
+            'menu_item_variation' => $this->variation ? new MenuItemVariationResource($this->variation) : null,
             'options'           => json_decode($this->options, true),
             'option_total'      => (int)$this->options_total,
         ];

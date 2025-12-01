@@ -183,6 +183,13 @@
                                 </li>
                             @endif
 
+                            @if ($order->service_fee_amount > 0)
+                                <li><span>{{ __('frontend.service_fee') }} ({{ $order->formatted_service_fee_rate }}) </span>
+                                    <span class="pe-xxl-4 pe-xl-3 pe-lg-1 pe-md-1">
+                                        {{ currencyFormat($order->service_fee_amount) }} </span>
+                                </li>
+                            @endif
+
                             <li>
                                 <span>{{ __('frontend.total') }}</span>
                                 <span class="pe-xxl-4 pe-xl-3 pe-lg-1 pe-md-1">{{ currencyFormat($order->total) }}</span>
@@ -340,6 +347,13 @@
                                         <li class="d-flex align-items-center justify-content-between">
                                             <span class="text-start"> {{ __('frontend.tax') }} ({{ $order->formatted_tax_rate }}):</span>
                                             <span class="text-end align-top">{{ currencyFormat($order->tax_amount) }}</span>
+                                        </li>
+                                    @endif
+
+                                    @if ($order->service_fee_amount > 0)
+                                        <li class="d-flex align-items-center justify-content-between">
+                                            <span class="text-start"> {{ __('frontend.service_fee') }} ({{ $order->formatted_service_fee_rate }}):</span>
+                                            <span class="text-end align-top">{{ currencyFormat($order->service_fee_amount) }}</span>
                                         </li>
                                     @endif
 
