@@ -62,8 +62,8 @@ class RestaurantRequest extends FormRequest
             'address'           => ['required', 'max:200'],
             'userstatus'        => ['required', 'numeric'],
             'waiter_status'     => ['required', 'numeric'],
-            'tax_rate'          => ['required', 'numeric', 'min:0', 'max:100'],
-            'service_fee_rate'  => ['required', 'numeric', 'min:0', 'max:100'],
+            'tax_rate'          => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'service_fee_rate'  => ['nullable', 'numeric', 'min:0', 'max:100'],
         ];
     }
 

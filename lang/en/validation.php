@@ -1,6 +1,6 @@
 <?php
 
-return array (
+return array(
   'accepted' => 'The :attribute field is required.',
   'radio' => 'The :attribute must be accepted.',
   'active_url' => 'The :attribute is not a valid URL.',
@@ -13,7 +13,7 @@ return array (
   'before' => 'The :attribute must be a date before :date.',
   'before_or_equal' => 'The :attribute must be a date before or equal to :date.',
   'between' =>
-  array (
+  array(
     'numeric' => 'The :attribute must be between :min and :max.',
     'file' => 'The :attribute must be between :min and :max kilobytes.',
     'string' => 'The :attribute must be between :min and :max characters.',
@@ -35,14 +35,14 @@ return array (
   'file' => 'The :attribute must be a file.',
   'filled' => 'The :attribute field must have a value.',
   'gt' =>
-  array (
+  array(
     'numeric' => 'The :attribute must be greater than :value.',
     'file' => 'The :attribute must be greater than :value kilobytes.',
     'string' => 'The :attribute must be greater than :value characters.',
     'array' => 'The :attribute must have more than :value items.',
   ),
   'gte' =>
-  array (
+  array(
     'numeric' => 'The :attribute must be greater than or equal :value.',
     'file' => 'The :attribute must be greater than or equal :value kilobytes.',
     'string' => 'The :attribute must be greater than or equal :value characters.',
@@ -57,21 +57,21 @@ return array (
   'ipv6' => 'The :attribute must be a valid IPv6 address.',
   'json' => 'The :attribute must be a valid JSON string.',
   'lt' =>
-  array (
+  array(
     'numeric' => 'The :attribute must be less than :value.',
     'file' => 'The :attribute must be less than :value kilobytes.',
     'string' => 'The :attribute must be less than :value characters.',
     'array' => 'The :attribute must have less than :value items.',
   ),
   'lte' =>
-  array (
+  array(
     'numeric' => 'The :attribute must be less than or equal :value.',
     'file' => 'The :attribute must be less than or equal :value kilobytes.',
     'string' => 'The :attribute must be less than or equal :value characters.',
     'array' => 'The :attribute must not have more than :value items.',
   ),
   'max' =>
-  array (
+  array(
     'numeric' => 'The :attribute may not be greater than :max.',
     'file' => 'The :attribute may not be greater than :max kilobytes.',
     'string' => 'The :attribute may not be greater than :max characters.',
@@ -80,7 +80,7 @@ return array (
   'mimes' => 'The :attribute must be a file of type: :values.',
   'mimetypes' => 'The :attribute must be a file of type: :values.',
   'min' =>
-  array (
+  array(
     'numeric' => 'The :attribute must be at least :min.',
     'file' => 'The :attribute must be at least :min kilobytes.',
     'string' => 'The :attribute must be at least :min characters.',
@@ -101,7 +101,7 @@ return array (
   'required_without_all' => 'The :attribute field is required when none of :values are present.',
   'same' => 'The :attribute and :other must match.',
   'size' =>
-  array (
+  array(
     'numeric' => 'The :attribute must be :size.',
     'file' => 'The :attribute must be :size kilobytes.',
     'string' => 'The :attribute must be :size characters.',
@@ -116,14 +116,14 @@ return array (
   'uuid' => 'The :attribute must be a valid UUID.',
   'image64' => 'The :attribute must be a file of type: :values.',
   'custom' =>
-  array (
+  array(
     'attribute-name' =>
-    array (
+    array(
       'rule-name' => 'custom-message',
     ),
   ),
   'attributes' =>
-  array (
+  array(
     'dashboard'                             => 'Dashboard',
     'profile'                               => 'Profile',
     'image'                                 => 'image',
@@ -265,5 +265,7 @@ return array (
     'password_edit'                         => 'Change Password',
     'bank'                                  => 'Bank',
     'expense'                               => 'Expense',
+    'tax_rate'                              => 'Tax Rate',
+    'service_fee_rate'                      => 'Service Fee Rate',
   ),
 );
