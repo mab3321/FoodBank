@@ -237,7 +237,7 @@
                                         @enderror
                                     </div>
 
-                                    <div class="col-12">
+                                    <div class="form-col-12 sm:form-col-6 md:form-col-6">
                                         <label class="db-field-title required">{{ __('levels.tax_rate') }} (%)</label>
                                         <div class="db-field-control-wrap">
                                             <input type="number" name="tax_rate" step="0.01" min="0" max="100"
@@ -249,6 +249,22 @@
                                             </span>
                                         </div>
                                         @error('tax_rate')
+                                        <small class="db-field-alert">{{ $message }}</small>
+                                        @enderror
+                                    </div>
+
+                                    <div class="form-col-12 sm:form-col-6 md:form-col-6">
+                                        <label class="db-field-title">{{ __('levels.service_fee_rate') }} (%)</label>
+                                        <div class="db-field-control-wrap">
+                                            <input type="number" name="service_fee_rate" step="0.01" min="0" max="100"
+                                                class="db-field-control @error('service_fee_rate') invalid @enderror"
+                                                placeholder="{{ __('levels.service_fee_rate') }}"
+                                                value="{{ old('service_fee_rate', $restaurant->service_fee_rate ?? '0.00') }}">
+                                            <span class="db-field-icon">
+                                                <i class="fa-solid fa-percent"></i>
+                                            </span>
+                                        </div>
+                                        @error('service_fee_rate')
                                         <small class="db-field-alert">{{ $message }}</small>
                                         @enderror
                                     </div>
