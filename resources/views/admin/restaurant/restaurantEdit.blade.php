@@ -258,7 +258,7 @@
                                         @enderror
                                     </div>
 
-                                    <div class="form-col-12 sm:form-col-6 md:form-col-6">
+                                    <div class="form-col-12 sm:form-col-12 md:form-col-12">
                                         <label class="db-field-title" for="tax_rate">{{ __('validation.attributes.tax_rate') }} (%)</label>
                                         <input type="number" name="tax_rate" id="tax_rate" step="0.01" min="0" max="100" class="db-field-control @error('tax_rate') invalid @enderror" value="{{ old('tax_rate', $restaurant->tax_rate ?? '17.00') }}">
             
@@ -267,7 +267,7 @@
                                         @enderror
                                     </div>
 
-                                    <div class="form-col-12 sm:form-col-6 md:form-col-6">
+                                    <div class="form-col-12 sm:form-col-12 md:form-col-12">
                                         <label class="db-field-title" for="service_fee_rate">{{ __('validation.attributes.service_fee_rate') }} (%)</label>
                                         <input type="number" name="service_fee_rate" id="service_fee_rate" step="0.01" min="0" max="100" class="db-field-control @error('service_fee_rate') invalid @enderror" value="{{ old('service_fee_rate', $restaurant->service_fee_rate ?? '0.00') }}">
             

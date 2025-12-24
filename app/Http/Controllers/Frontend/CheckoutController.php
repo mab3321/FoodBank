@@ -87,7 +87,7 @@ class CheckoutController extends FrontendController
         $validator = Validator::make($request->all(), $validation, $messages);
         $validator->after(function ($validator) use ($request, $restaurant) {
             if ($request->payment_type == PaymentMethod::WALLET) {
-                if ((float) auth()->user()->balance->balance < (float) (session()->get('cart')['totalAmount'] + session()->get('delivery_charge'))) {
+                if ((float) auth()->user()->balance->balance < (float) session()->get('cart')['totalPayAmount']) {
                     $validator->errors()->add('payment_type', 'The Credit balance does not enough for this payment.');
                 }
             }
@@ -127,7 +127,7 @@ class CheckoutController extends FrontendController
         try {
             $array['store_id'] = env('SSLCOMMERZ_STORE_ID');
             $array['store_passwd'] = env('SSLCOMMERZ_STORE_PASSWORD');
-            $array['total_amount'] = session()->get('cart')['totalAmount'] + session()->get('delivery_charge');
+            $array['total_amount'] = session()->get('cart')['totalPayAmount'];
             $array['currency'] = "USD";
             $array['tran_id'] = "SSLCZ_" . uniqid();
             $array['shipping_method'] = "NO";
@@ -142,7 +142,7 @@ class CheckoutController extends FrontendController
             $array['product_name'] = "FoodBank";
             $array['product_category'] = "Food";
             $array['product_profile'] = "general";
-            $array['product_amount'] = session()->get('cart')['totalAmount'] + session()->get('delivery_charge');
+            $array['product_amount'] = session()->get('cart')['totalPayAmount'];
             $array['discount_amount'] = "";
             $array['convenience_fee'] = session()->get('delivery_charge');
             $array['success_url'] = url('/sslcommerz/success');
@@ -205,7 +205,7 @@ class CheckoutController extends FrontendController
     public function phonePePayment($request)
     {
         $phonepe = new LaravelPhonePe();
-        $amount = session()->get('cart')['totalAmount'] + session()->get('delivery_charge');
+        $amount = session()->get('cart')['totalPayAmount'];
         $phone = $request->countrycode . $request->mobile;
         $callbak_url = url('/phonepe/status');
         $uniqueId = uniqid();
@@ -286,7 +286,7 @@ class CheckoutController extends FrontendController
         $validator->after(function ($validator) use ($request, $restaurant) {
             if (
                 $request->payment_type == PaymentMethod::WALLET &&
-                (float) auth()->user()->balance->balance < (float) (session()->get('cart')['totalAmount'] + session()->get('delivery_charge'))
+                (float) auth()->user()->balance->balance < (float) session()->get('cart')['totalPayAmount']
             ) {
                 $validator->errors()->add('payment_type', 'The Credit balance does not enough for this payment.');
             }
@@ -308,14 +308,7 @@ class CheckoutController extends FrontendController
         $payment = $stripeService->payment($stripeParameters);
         $orderService = $this->handlePaymentResponse($payment);
 
-        if ($orderService->status) {
-            $order = Order::find($orderService->order_id);
-            $this->clearSessionData();
-            $this->sendOrderNotifications($order);
-            return redirect(route('account.order.show', $order->id))->withSuccess('You order completed successfully.');
-        } else {
-            return redirect(route('checkout.index'))->withError($orderService->message);
-        }
+        return $this->handleOrderServiceResponse($orderService);
     }
 
     protected function preparePaystackPaymentData($request)
@@ -324,7 +317,7 @@ class CheckoutController extends FrontendController
             'Authorization' => 'Bearer ' . setting('paystack_secret'),
         ])->post('https://api.paystack.co/transaction/initialize', [
             'email' => auth()->user()->email,
-            'amount' => (session()->get('cart')['totalAmount'] + session()->get('delivery_charge')) * 100, // Convert to kobo
+            'amount' => session()->get('cart')['totalPayAmount'] * 100, // Convert to kobo
             'callback_url' => route('paystack.callback'),
         ]);
 
@@ -377,7 +370,7 @@ class CheckoutController extends FrontendController
                 [
                     'amount' => [
                         'currency_code' => setting('currency_name'),
-                        'value' => session()->get('cart')['totalAmount'] + session()->get('delivery_charge'),
+                        'value' => session()->get('cart')['totalPayAmount'],
                     ],
                 ],
             ],
@@ -430,10 +423,32 @@ class CheckoutController extends FrontendController
     protected function handleOrderServiceResponse($orderService)
     {
         if ($orderService->status) {
-            $order = Order::find($orderService->order_id);
-            $this->clearSessionData();
-            $this->sendOrderNotifications($order);
-            return redirect(route('account.order.show', $order->id))->withSuccess('You order completed successfully.');
+            // Handle multiple orders - send notifications for all
+            if (isset($orderService->order_ids) && is_array($orderService->order_ids)) {
+                foreach ($orderService->order_ids as $orderId) {
+                    $order = Order::find($orderId);
+                    if ($order) {
+                        $this->sendOrderNotifications($order);
+                    }
+                }
+                // Redirect to first order's detail page
+                $firstOrder = Order::find($orderService->order_ids[0]);
+                $this->clearSessionData();
+
+                if (count($orderService->order_ids) > 1) {
+                    return redirect(route('account.order.show', $orderService->order_ids[0]))
+                        ->withSuccess('Orders completed successfully! ' . count($orderService->order_ids) . ' orders have been placed.');
+                } else {
+                    return redirect(route('account.order.show', $orderService->order_ids[0]))
+                        ->withSuccess('Order completed successfully!');
+                }
+            } else {
+                // Backward compatibility - single order
+                $order = Order::find($orderService->order_id);
+                $this->clearSessionData();
+                $this->sendOrderNotifications($order);
+                return redirect(route('account.order.show', $order->id))->withSuccess('Order completed successfully!');
+            }
         } else {
             return redirect(route('checkout.index'))->withError($orderService->message);
         }
@@ -449,7 +464,7 @@ class CheckoutController extends FrontendController
 
     protected function sendOrderNotifications($order)
     {
-        try { 
+        try {
             app(PushNotificationService::class)->NotificationForRestaurant($order, $order->restaurant->user, 'restaurant');
             app(PushNotificationService::class)->NotificationForCustomer($order, auth()->user(), 'customer');
         } catch (\Exception $exception) {

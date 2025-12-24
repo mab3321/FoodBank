@@ -79,7 +79,7 @@ function getLatLongPosition(latitude, longitude) {
 
 
         // Pickup-only restaurant - no delivery charges
-        total = subtotal - parseInt(couponAmount);
+        total = parseFloat(subtotal) - parseFloat(couponAmount) + parseFloat(taxAmount) + parseFloat(serviceFeeAmount);
         
         sessionStorage.removeItem('charge');
         $('#lat').val(latLng.lat);
@@ -102,7 +102,7 @@ function getLatLongPosition(latitude, longitude) {
     });
 
     // Pickup-only restaurant - no delivery charges
-    total = subtotal - parseInt(couponAmount);
+    total = parseFloat(subtotal) - parseFloat(couponAmount) + parseFloat(taxAmount) + parseFloat(serviceFeeAmount);
     sessionStorage.removeItem('charge');
     $('#total').text(parseFloat(total).toFixed(2));
     $('#lat').val(latitude);
@@ -310,7 +310,7 @@ function modalshow(href) {
 
 $(document).on('click', '#modalClose', function (event) {
     // Pickup-only restaurant - no delivery charges
-    let total = subtotal - parseInt(couponAmount);
+    let total = parseFloat(subtotal) - parseFloat(couponAmount) + parseFloat(taxAmount) + parseFloat(serviceFeeAmount);
     $('#total').text(parseFloat(total).toFixed(2));
 });
 
@@ -356,7 +356,7 @@ function distance(lat1, lon1, lat2, lon2) {
 function deliveryAddress(latitude, longitude) {
     sessionStorage.removeItem('charge');
     // Pickup-only restaurant - no delivery charges
-    let total = subtotal - parseInt(couponAmount);
+    let total = parseFloat(subtotal) - parseFloat(couponAmount) + parseFloat(taxAmount) + parseFloat(serviceFeeAmount);
     $('#total').text(parseFloat(total).toFixed(2));
     const mode = sessionStorage.getItem('charge');
     // console.log(mode);

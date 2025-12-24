@@ -37,9 +37,11 @@ class RestaurantController extends FrontendController
         $this->restaurant = $restaurant;
         $this->filepond   = $filepond;
 
-        if (session('session_cart_restaurant_id') !=  $this->restaurant->id) {
-            session()->forget('cart');
-        }
+        // MULTI-RESTAURANT CART: Don't clear cart when switching restaurants
+        // Update session to track current restaurant being viewed (for UI purposes)
+        // but keep all cart items from all restaurants
+        session()->put('session_cart_restaurant_id', $this->restaurant->id);
+
         $this->loadCategoriesAndProducts();
         $this->loadRatings();
         $this->data['order_status'] = auth()->id() ? Order::where(['restaurant_id' => $this->restaurant->id, 'status' => OrderStatus::COMPLETED, 'user_id' => auth()->id()])->get() : [];

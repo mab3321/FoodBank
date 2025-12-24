@@ -297,7 +297,7 @@
                         @endif
                     </div>
 
-                    {{-- Order Timer Component --}}
+                    {{-- Enhanced Order Timer Component --}}
                     @if($order->status == App\Enums\OrderStatus::PROCESS && $order->process_started_at)
                     <div class="mt-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-lg border border-blue-200">
                         <div class="flex items-center justify-between mb-4">
@@ -310,33 +310,53 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {{-- Timer Display --}}
-                            <div class="text-center">
-                                <div class="text-4xl font-bold mb-2 countdown-display
-                                    @if($order->is_overdue) text-red-600 animate-pulse
-                                    @elseif($order->remaining_time <= 5) text-orange-500
-                                    @else text-green-600 @endif" 
-                                    id="countdown-{{ $order->id }}">
-                                    {{ $order->formatted_remaining_time }}
-                                </div>
-                                <div class="text-sm text-gray-600">
-                                    @if($order->is_overdue)
-                                        <span class="text-red-600 font-semibold">⚠️ OVERDUE</span>
-                                    @else
-                                        Remaining Time
-                                    @endif
+                        {{-- Enhanced Timer Display with Circular Progress --}}
+                        <div class="flex flex-wrap items-center gap-8">
+                            {{-- Circular Timer Display --}}
+                            <div class="flex-shrink-0">
+                                <div class="restaurant-progress-circle relative w-32 h-32 rounded-full flex items-center justify-center
+                                    @if($order->is_overdue) bg-red-100 border-4 border-red-300
+                                    @elseif($order->remaining_time <= 5) bg-orange-100 border-4 border-orange-300
+                                    @else bg-green-100 border-4 border-green-300 @endif">
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold countdown-display
+                                            @if($order->is_overdue) text-red-600
+                                            @elseif($order->remaining_time <= 5) text-orange-600
+                                            @else text-green-600 @endif" 
+                                            id="countdown-{{ $order->id }}">
+                                            {{ $order->formatted_remaining_time }}
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1">
+                                            @if($order->is_overdue)
+                                                OVERDUE
+                                            @else
+                                                remaining
+                                            @endif
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            {{-- Progress Bar --}}
-                            <div class="flex items-center">
-                                <div class="w-full">
-                                    <div class="flex justify-between text-sm mb-2">
-                                        <span>Progress</span>
-                                        <span id="progress-text-{{ $order->id }}">{{ $order->progress_percentage }}%</span>
+                            {{-- Timer Information --}}
+                            <div class="flex-1 min-w-64">
+                                <div class="grid grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <div class="text-sm text-gray-600">Estimated Time</div>
+                                        <div class="text-lg font-semibold text-gray-800">{{ $order->estimated_wait_time }} minutes</div>
                                     </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                                    <div>
+                                        <div class="text-sm text-gray-600">Elapsed Time</div>
+                                        <div class="text-lg font-semibold text-gray-800" id="elapsed-{{ $order->id }}">{{ $order->elapsed_time }} minutes</div>
+                                    </div>
+                                </div>
+                                
+                                {{-- Progress Bar --}}
+                                <div class="mb-3">
+                                    <div class="flex justify-between text-sm mb-2">
+                                        <span class="font-medium">Cooking Progress</span>
+                                        <span id="progress-text-{{ $order->id }}" class="font-semibold">{{ $order->progress_percentage }}%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                                         <div class="h-full rounded-full transition-all duration-1000 progress-bar
                                             @if($order->is_overdue) bg-red-500
                                             @elseif($order->progress_percentage >= 80) bg-orange-500
@@ -346,7 +366,25 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                {{-- Status Badge --}}
+                                <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                                    @if($order->is_overdue) bg-red-100 text-red-800
+                                    @elseif($order->remaining_time <= 5) bg-orange-100 text-orange-800
+                                    @else bg-green-100 text-green-800 @endif">
+                                    @if($order->is_overdue)
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                                        Behind Schedule
+                                    @elseif($order->remaining_time <= 5)
+                                        <i class="fas fa-clock mr-1"></i>
+                                        Almost Ready
+                                    @else
+                                        <i class="fas fa-check-circle mr-1"></i>
+                                        On Track
+                                    @endif
+                                </div>
                             </div>
+                        </div>
 
                             {{-- Order Info --}}
                             <div class="text-center">
@@ -861,6 +899,57 @@
         animation: successPulse 1s ease-out;
     }
     
+    /* Enhanced Restaurant Timer Styles */
+    .restaurant-progress-circle {
+        position: relative;
+        background: conic-gradient(var(--progress-color, #10b981) var(--progress-percentage, 0%), #e5e7eb 0%);
+        transition: all 0.5s ease-in-out;
+    }
+    
+    .restaurant-progress-circle::before {
+        content: '';
+        position: absolute;
+        width: calc(100% - 16px);
+        height: calc(100% - 16px);
+        border-radius: 50%;
+        background: white;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    
+    .restaurant-progress-circle .text-center {
+        position: relative;
+        z-index: 1;
+    }
+    
+    @keyframes progress-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+        50% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+    }
+    
+    .restaurant-progress-circle.pulse-green {
+        animation: progress-pulse 2s infinite;
+    }
+    
+    @keyframes progress-pulse-orange {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(251, 146, 60, 0.4); }
+        50% { box-shadow: 0 0 0 10px rgba(251, 146, 60, 0); }
+    }
+    
+    .restaurant-progress-circle.pulse-orange {
+        animation: progress-pulse-orange 2s infinite;
+    }
+    
+    @keyframes progress-pulse-red {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+        50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    }
+    
+    .restaurant-progress-circle.pulse-red {
+        animation: progress-pulse-red 1.5s infinite;
+    }
+    
     /* Status-specific gradient backgrounds */
     .bg-green-500 {
         background: linear-gradient(135deg, #10b981 0%, #059669 100%);
@@ -1192,6 +1281,35 @@
                 'width': progressPercentage + '%',
                 'transition': 'width 0.5s ease-in-out'
             });
+            
+            // Update circular progress
+            let circleElement = $('.restaurant-progress-circle');
+            if (circleElement.length) {
+                circleElement.removeClass('pulse-green pulse-orange pulse-red');
+                
+                if (remainingSeconds <= 0) {
+                    // Overdue - red
+                    circleElement.addClass('pulse-red');
+                    circleElement.css({
+                        '--progress-percentage': '100%',
+                        '--progress-color': '#ef4444'
+                    });
+                } else if (remainingSeconds <= 300) {
+                    // Last 5 minutes - orange
+                    circleElement.addClass('pulse-orange');
+                    circleElement.css({
+                        '--progress-percentage': progressPercentage + '%',
+                        '--progress-color': '#f59e0b'
+                    });
+                } else {
+                    // Normal - green
+                    circleElement.addClass('pulse-green');
+                    circleElement.css({
+                        '--progress-percentage': progressPercentage + '%',
+                        '--progress-color': '#10b981'
+                    });
+                }
+            }
             
             // Dynamic color updates with smooth transitions
             if (remainingSeconds <= 0) {

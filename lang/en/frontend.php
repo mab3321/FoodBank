@@ -199,4 +199,11 @@ return array(
   'phonePe'                         => 'PhonePe',
   'sslcommerz'                      => 'SslCommerz',
   'sl'                              => 'SL',
+  'preparation_time'                => 'Preparation Time',
+  'remaining'                       => 'remaining',
+  'estimated_time'                  => 'Estimated Time',
+  'started_at'                      => 'Started At',
+  'overdue'                         => 'Overdue',
+  'on_time'                         => 'On Time',
+  'minutes'                         => 'minutes',
 );

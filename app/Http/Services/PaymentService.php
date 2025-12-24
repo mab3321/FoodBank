@@ -13,10 +13,7 @@ class PaymentService
 
     public function payment($paymetSuccess)
     {
-
-        $restaurant = Restaurant::find(session('session_cart_restaurant_id'));
         $request = session()->get('checkoutRequest');
-
         $cart = session()->get('cart');
 
         if (($cart && isset($cart['delivery_type']) && $cart['delivery_type'] == true) || ($cart && isset($cart['free_delivery']) && $cart['free_delivery'])) {
@@ -27,95 +24,137 @@ class PaymentService
             $order_type = OrderTypeStatus::DELIVERY;
         }
 
-        $items = [];
-
         $cartItems = session()->get('cart')['items'] ?? [];
 
-        foreach ($cartItems as $cart) {
-            $menuItemVariationId = $cart['variation']['id'] ?? null;
-            $variation = $cart['variation'] ?? null;
-            $options = $cart['options'] ?? null;
-            $instructions = $cart['instructions'] ?? null;
-
-            $items[] = [
-                'restaurant_id' => $restaurant->id,
-                'menu_item_variation_id' => $menuItemVariationId,
-                'menu_item_id' => $cart['menuItem_id'],
-                'unit_price' => (float) $cart['price'],
-                'quantity' => (int) $cart['qty'],
-                'discounted_price' => (float) $cart['discount'],
-                'variation' => $variation,
-                'options' => $options,
-                'instructions' => $instructions,
-            ];
+        // Group cart items by restaurant
+        $itemsByRestaurant = [];
+        foreach ($cartItems as $cartItem) {
+            $restaurantId = $cartItem['restaurant_id'];
+            if (!isset($itemsByRestaurant[$restaurantId])) {
+                $itemsByRestaurant[$restaurantId] = [];
+            }
+            $itemsByRestaurant[$restaurantId][] = $cartItem;
         }
 
         // Get tax and service fee information from cart
-        $cart = session()->get('cart');
         $taxAmount = isset($cart['tax_amount']) ? $cart['tax_amount'] : 0;
         $serviceFeeAmount = isset($cart['service_fee_amount']) ? $cart['service_fee_amount'] : 0;
         $totalAmountWithTax = (isset($cart['totalAmount']) ? $cart['totalAmount'] : 0) + $delivery_charge + $taxAmount + $serviceFeeAmount;
 
+        $taxAmount = isset($cart['tax_amount']) ? $cart['tax_amount'] : 0;
+        $serviceFeeAmount = isset($cart['service_fee_amount']) ? $cart['service_fee_amount'] : 0;
+        $totalAmountWithTax = (isset($cart['totalAmount']) ? $cart['totalAmount'] : 0) + $delivery_charge + $taxAmount + $serviceFeeAmount;
+
+        // Determine payment status based on payment method
+        $paymentStatus = PaymentStatus::UNPAID;
+        $paymentMethod = PaymentMethod::CASH_ON_DELIVERY;
+        $paidAmount = 0;
+
         if ($request['payment_type'] == PaymentMethod::STRIPE && $paymetSuccess) {
-            $this->data['paid_amount'] = $totalAmountWithTax;
-            $this->data['payment_method'] = $request['payment_type'];
-            $this->data['payment_status'] = PaymentStatus::PAID;
+            $paidAmount = $totalAmountWithTax;
+            $paymentMethod = $request['payment_type'];
+            $paymentStatus = PaymentStatus::PAID;
         } elseif ($request['payment_type'] == PaymentMethod::PAYTM) {
-            $this->data['paid_amount'] = $totalAmountWithTax;
-            $this->data['payment_method'] = $request['payment_type'];
-            $this->data['payment_status'] = PaymentStatus::PAID;
+            $paidAmount = $totalAmountWithTax;
+            $paymentMethod = $request['payment_type'];
+            $paymentStatus = PaymentStatus::PAID;
         } elseif ($request['payment_type'] == PaymentMethod::PHONEPE) {
-            $this->data['paid_amount'] = $totalAmountWithTax;
-            $this->data['payment_method'] = $request['payment_type'];
-            $this->data['payment_status'] = PaymentStatus::PAID;
+            $paidAmount = $totalAmountWithTax;
+            $paymentMethod = $request['payment_type'];
+            $paymentStatus = PaymentStatus::PAID;
         } elseif ($request['payment_type'] == PaymentMethod::WALLET) {
-
-            $this->data['paid_amount'] = $totalAmountWithTax;
-            $this->data['payment_method'] = $request['payment_type'];
-            $this->data['payment_status'] = PaymentStatus::PAID;
+            $paidAmount = $totalAmountWithTax;
+            $paymentMethod = $request['payment_type'];
+            $paymentStatus = PaymentStatus::PAID;
         } elseif ($request['payment_type'] == PaymentMethod::PAYSTACK && $paymetSuccess) {
-
-            $this->data['paid_amount'] = $totalAmountWithTax;
-            $this->data['payment_method'] = $request['payment_type'];
-            $this->data['payment_status'] = PaymentStatus::PAID;
+            $paidAmount = $totalAmountWithTax;
+            $paymentMethod = $request['payment_type'];
+            $paymentStatus = PaymentStatus::PAID;
         } elseif ($request['payment_type'] == PaymentMethod::PAYPAL && $paymetSuccess) {
-
-            $this->data['paid_amount'] = $totalAmountWithTax;
-            $this->data['payment_method'] = $request['payment_type'];
-            $this->data['payment_status'] = PaymentStatus::PAID;
+            $paidAmount = $totalAmountWithTax;
+            $paymentMethod = $request['payment_type'];
+            $paymentStatus = PaymentStatus::PAID;
         } elseif ($request['payment_type'] == PaymentMethod::RAZORPAY && $paymetSuccess) {
-            $this->data['paid_amount'] = session()->get('cart')['totalAmount'] + $delivery_charge;
-            $this->data['payment_method'] = $request['payment_type'];
-            $this->data['payment_status'] = PaymentStatus::PAID;
+            $paidAmount = $totalAmountWithTax;
+            $paymentMethod = $request['payment_type'];
+            $paymentStatus = PaymentStatus::PAID;
         } elseif ($request['payment_type'] == PaymentMethod::SSLCOMMERZ) {
-            $this->data['paid_amount'] = session()->get('cart')['totalAmount'] + $delivery_charge;
-            $this->data['payment_method'] = $request['payment_type'];
-            $this->data['payment_status'] = PaymentStatus::PAID;
-        } else {
-            $this->data['paid_amount'] = 0;
-            $this->data['payment_method'] = PaymentMethod::CASH_ON_DELIVERY;
-            $this->data['payment_status'] = PaymentStatus::UNPAID;
+            $paidAmount = $totalAmountWithTax;
+            $paymentMethod = $request['payment_type'];
+            $paymentStatus = PaymentStatus::PAID;
         }
 
-        $this->data['coupon_id'] = isset($cart['couponID']) ? $cart['couponID'] : null;
-        $this->data['coupon_amount'] = isset($cart['coupon_amount']) ? $cart['coupon_amount'] : null;
+        // Create separate orders for each restaurant
+        $orderIds = [];
+        $restaurantCount = count($itemsByRestaurant);
 
-        // Add tax and service fee information to order data
-        $this->data['tax_rate'] = isset($cart['tax_rate']) ? $cart['tax_rate'] : 0;
-        $this->data['tax_amount'] = $taxAmount;
-        $this->data['service_fee_rate'] = isset($cart['service_fee_rate']) ? $cart['service_fee_rate'] : 0;
-        $this->data['service_fee_amount'] = $serviceFeeAmount;
+        foreach ($itemsByRestaurant as $restaurantId => $restaurantItems) {
+            // Calculate subtotal for this restaurant's items
+            $restaurantSubtotal = 0;
+            $items = [];
 
-        $this->data['items'] = $items;
-        $this->data['order_type'] = $order_type;
-        $this->data['restaurant_id'] = session('session_cart_restaurant_id');
-        $this->data['user_id'] = auth()->user()->id;
-        $this->data['total'] = isset($cart['totalAmount']) ? $cart['totalAmount'] : 0;
-        $this->data['delivery_charge'] = $delivery_charge;
-        $this->data['address'] = isset($request['address']) ? $request['address'] : '';
-        $this->data['mobile'] = $request['countrycode'] . $request['mobile'];
-        $orderService = app(OrderService::class)->order($this->data);
+            foreach ($restaurantItems as $cartItem) {
+                $menuItemVariationId = $cartItem['variation']['id'] ?? null;
+                $variation = $cartItem['variation'] ?? null;
+                $options = $cartItem['options'] ?? null;
+                $instructions = $cartItem['instructions'] ?? null;
 
-        return $orderService;
+                $items[] = [
+                    'restaurant_id' => $restaurantId,
+                    'menu_item_variation_id' => $menuItemVariationId,
+                    'menu_item_id' => $cartItem['menuItem_id'],
+                    'unit_price' => (float) $cartItem['price'],
+                    'quantity' => (int) $cartItem['qty'],
+                    'discounted_price' => (float) $cartItem['discount'],
+                    'variation' => $variation,
+                    'options' => $options,
+                    'instructions' => $instructions,
+                ];
+
+                $restaurantSubtotal += (float) $cartItem['totalPrice'];
+            }
+
+            // Calculate proportional delivery charge, tax, and service fee for this restaurant
+            $totalSubtotal = isset($cart['totalAmount']) ? $cart['totalAmount'] : 0;
+            $proportionalDeliveryCharge = $totalSubtotal > 0 ? ($restaurantSubtotal / $totalSubtotal) * $delivery_charge : 0;
+            $proportionalTax = $totalSubtotal > 0 ? ($restaurantSubtotal / $totalSubtotal) * $taxAmount : 0;
+            $proportionalServiceFee = $totalSubtotal > 0 ? ($restaurantSubtotal / $totalSubtotal) * $serviceFeeAmount : 0;
+            $proportionalPaidAmount = $totalSubtotal > 0 ? ($restaurantSubtotal / $totalSubtotal) * $paidAmount : 0;
+
+            $orderData = [
+                'items' => $items,
+                'order_type' => $order_type,
+                'restaurant_id' => $restaurantId,
+                'user_id' => auth()->user()->id,
+                'total' => $restaurantSubtotal,
+                'delivery_charge' => $proportionalDeliveryCharge,
+                'address' => isset($request['address']) ? $request['address'] : '',
+                'mobile' => $request['countrycode'] . $request['mobile'],
+                'payment_method' => $paymentMethod,
+                'payment_status' => $paymentStatus,
+                'paid_amount' => $proportionalPaidAmount,
+                'tax_rate' => isset($cart['tax_rate']) ? $cart['tax_rate'] : 0,
+                'tax_amount' => $proportionalTax,
+                'service_fee_rate' => isset($cart['service_fee_rate']) ? $cart['service_fee_rate'] : 0,
+                'service_fee_amount' => $proportionalServiceFee,
+                'coupon_id' => isset($cart['couponID']) ? $cart['couponID'] : null,
+                'coupon_amount' => isset($cart['coupon_amount']) ? ($cart['coupon_amount'] / $restaurantCount) : null,
+            ];
+
+            $orderService = app(OrderService::class)->order($orderData);
+
+            if ($orderService->status) {
+                $orderIds[] = $orderService->order_id;
+            }
+        }
+
+        // Return response with all order IDs
+        $response = new \stdClass();
+        $response->status = count($orderIds) > 0;
+        $response->order_id = count($orderIds) > 0 ? $orderIds[0] : null; // Return first order ID for backward compatibility
+        $response->order_ids = $orderIds; // All order IDs
+        $response->message = count($orderIds) > 0 ? 'Orders created successfully' : 'Failed to create orders';
+
+        return $response;
     }
 }

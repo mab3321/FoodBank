@@ -115,6 +115,59 @@
 
                                 </ul>
                             </div>
+
+                            {{-- Enhanced Circular Timer Debug --}}
+                            {{-- Order Status: {{ $order->status }}, Process Status: {{ \App\Enums\OrderStatus::PROCESS }}, Started: {{ $order->process_started_at }}, Est Time: {{ $order->estimated_wait_time }} --}}
+                            @if ($order->status == \App\Enums\OrderStatus::PROCESS && $order->process_started_at && $order->estimated_wait_time)
+                                <div class="order-box timer-enhanced">
+                                    <div class="d-flex align-items-center gap-3 mb-4">
+                                        <i class="fas fa-clock text-primary" style="font-size: 1.5rem;"></i>
+                                        <h4 class="mb-0 font-weight-bold">Order Preparation</h4>
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-center mb-4">
+                                        <div class="customer-progress-circle" id="customer-timer-circle">
+                                            <div class="timer-content text-center">
+                                                <div class="timer-digits" id="remaining-time">{{ $order->formatted_remaining_time }}</div>
+                                                <div class="timer-label">remaining</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row text-center">
+                                        <div class="col-4">
+                                            <div class="timer-stat">
+                                                <div class="stat-value">{{ $order->estimated_wait_time }}</div>
+                                                <div class="stat-label">minutes</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="timer-stat">
+                                                <div class="stat-value">{{ $order->process_started_at->format('H:i') }}</div>
+                                                <div class="stat-label">started</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="timer-stat">
+                                                <div class="stat-value status-indicator" id="status-indicator">
+                                                    @if ($order->is_overdue)
+                                                        <i class="fas fa-exclamation-triangle text-danger"></i>
+                                                    @else
+                                                        <i class="fas fa-check-circle text-success"></i>
+                                                    @endif
+                                                </div>
+                                                <div class="stat-label" id="status-text">
+                                                    @if ($order->is_overdue)
+                                                        overdue
+                                                    @else
+                                                        on time
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
 
                         @if (session('status'))
@@ -447,3 +500,232 @@
     </section>
     <!--======= SETTINGS PART END ====-->
 @endsection
+
+@push('css')
+<style>
+    /* Enhanced Restaurant-Style Timer - Exact Match */
+    .order-box.timer-enhanced {
+        border: 3px solid #007bff !important;
+        border-radius: 16px !important;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%) !important;
+        box-shadow: 0 8px 25px rgba(0, 123, 255, 0.1) !important;
+        padding: 30px !important;
+        margin: 20px 0 !important;
+        position: relative !important;
+        z-index: 10 !important;
+    }
+    
+    .customer-progress-circle {
+        position: relative !important;
+        width: 160px !important;
+        height: 160px !important;
+        border-radius: 50% !important;
+        background: conic-gradient(var(--progress-color, #ff8c00) var(--progress, 75%), #e9ecef 0%) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.5s ease-in-out !important;
+        box-shadow: 0 8px 20px rgba(255, 140, 0, 0.2) !important;
+        border: 4px solid #e9ecef !important;
+        margin: 0 auto !important;
+    }
+    
+    .customer-progress-circle::before {
+        content: '';
+        position: absolute;
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        background: white;
+        box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.1);
+        z-index: 1;
+    }
+    
+    /* Pulse animations like restaurant side */
+    @keyframes customer-pulse-orange {
+        0%, 100% { box-shadow: 0 8px 20px rgba(255, 140, 0, 0.2), 0 0 0 0 rgba(255, 140, 0, 0.4); }
+        50% { box-shadow: 0 8px 20px rgba(255, 140, 0, 0.3), 0 0 0 10px rgba(255, 140, 0, 0); }
+    }
+    
+    @keyframes customer-pulse-red {
+        0%, 100% { box-shadow: 0 8px 20px rgba(239, 68, 68, 0.2), 0 0 0 0 rgba(239, 68, 68, 0.4); }
+        50% { box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3), 0 0 0 10px rgba(239, 68, 68, 0); }
+    }
+    
+    .customer-progress-circle.pulse-orange {
+        animation: customer-pulse-orange 2s infinite;
+    }
+    
+    .customer-progress-circle.pulse-red {
+        animation: customer-pulse-red 1.5s infinite;
+    }
+    
+    .timer-content {
+        position: relative;
+        z-index: 2;
+        color: #333;
+    }
+    
+    .timer-digits {
+        font-size: 32px;
+        font-weight: 800;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        color: #1f2937;
+        margin-bottom: 2px;
+        line-height: 1;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    
+    .timer-label {
+        font-size: 11px;
+        color: #6b7280;
+        text-transform: lowercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
+    }
+    
+    .timer-stat {
+        padding: 10px 5px;
+    }
+    
+    .stat-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 4px;
+        line-height: 1;
+    }
+    
+    .stat-label {
+        font-size: 11px;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
+    }
+    
+    .status-indicator i {
+        font-size: 24px;
+    }
+    
+    /* Animations */
+    @keyframes timer-pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.02); }
+    }
+    
+    .customer-progress-circle.pulse {
+        animation: timer-pulse 2s infinite;
+    }
+    
+    @media (max-width: 768px) {
+        .customer-progress-circle {
+            width: 130px;
+            height: 130px;
+        }
+        
+        .customer-progress-circle::before {
+            width: 105px;
+            height: 105px;
+        }
+        
+        .timer-digits {
+            font-size: 22px;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+        }
+        
+        .order-box.timer-enhanced {
+            padding: 20px;
+        }
+    }
+</style>
+@endpush
+
+@push('js')
+<script>
+    $(document).ready(function() {
+        // Only run timer if order is in process
+        @if ($order->status == \App\Enums\OrderStatus::PROCESS && $order->process_started_at && $order->estimated_wait_time)
+            
+            const startedAt = new Date('{{ $order->process_started_at->toISOString() }}');
+            const estimatedMinutes = {{ $order->estimated_wait_time }};
+            const progressCircle = document.querySelector('.customer-progress-circle');
+            
+            function updateTimer() {
+                const now = new Date();
+                const elapsedMs = now - startedAt;
+                const elapsedMinutes = Math.floor(elapsedMs / 60000);
+                const remainingMinutes = Math.max(0, estimatedMinutes - elapsedMinutes);
+                
+                // Update remaining time display (restaurant-style format)
+                const hours = Math.floor(remainingMinutes / 60);
+                const mins = remainingMinutes % 60;
+                let timeString;
+                
+                if (remainingMinutes <= 0) {
+                    timeString = '0:00';
+                } else if (hours > 0) {
+                    timeString = hours + ':' + String(mins).padStart(2, '0');
+                } else {
+                    timeString = mins + ':' + String(remainingMinutes % 1 * 60).padStart(2, '0');
+                }
+                
+                $('#remaining-time').text(timeString);
+                
+                // Calculate progress based on elapsed time (like restaurant side)
+                const progressPercentage = Math.min(100, (elapsedMinutes / estimatedMinutes) * 100);
+                progressCircle.style.setProperty('--progress', progressPercentage + '%');
+                
+                // Update status and colors (exact restaurant logic)
+                const statusIndicator = document.getElementById('status-indicator');
+                const statusText = document.getElementById('status-text');
+                
+                // Remove all pulse classes first
+                progressCircle.classList.remove('pulse-orange', 'pulse-red');
+                
+                if (remainingMinutes <= 0 && elapsedMinutes > estimatedMinutes) {
+                    // Overdue - red with pulse
+                    progressCircle.style.setProperty('--progress-color', '#ef4444');
+                    progressCircle.style.setProperty('--progress', '100%');
+                    progressCircle.classList.add('pulse-red');
+                    
+                    if (statusIndicator && statusText) {
+                        statusIndicator.innerHTML = '<i class="fas fa-exclamation-triangle text-danger"></i>';
+                        statusText.textContent = 'overdue';
+                    }
+                } else if (remainingMinutes <= 5) {
+                    // Warning - orange with pulse (almost ready)
+                    progressCircle.style.setProperty('--progress-color', '#f59e0b');
+                    progressCircle.classList.add('pulse-orange');
+                    
+                    if (statusIndicator && statusText) {
+                        statusIndicator.innerHTML = '<i class="fas fa-clock text-warning"></i>';
+                        statusText.textContent = 'almost ready';
+                    }
+                } else {
+                    // Normal - orange (default cooking color)
+                    progressCircle.style.setProperty('--progress-color', '#f59e0b');
+                    
+                    if (statusIndicator && statusText) {
+                        statusIndicator.innerHTML = '<i class="fas fa-check-circle text-success"></i>';
+                        statusText.textContent = 'on time';
+                    }
+                }
+            }
+            
+            // Update timer immediately and then every minute
+            updateTimer();
+            const timerInterval = setInterval(updateTimer, 60000); // Update every minute
+            
+            // Clear interval when page is unloaded
+            $(window).on('beforeunload', function() {
+                clearInterval(timerInterval);
+            });
+            
+        @endif
+    });
+</script>
+@endpush

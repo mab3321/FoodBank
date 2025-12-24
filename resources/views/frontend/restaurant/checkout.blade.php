@@ -338,9 +338,16 @@
                                 </li>
                             @endif
 
+                            @if (isset($menuitems['service_fee_amount']) && $menuitems['service_fee_amount'] > 0)
+                                <li>
+                                    <span>{{ __('frontend.service_fee') }} ({{ $menuitems['service_fee_rate'] }}%)</span>
+                                    <span>{{ setting('currency_code') }}{{ number_format($menuitems['service_fee_amount'], 2) }}</span>
+                                </li>
+                            @endif
+
                             <li>
                                 <span>{{ __('frontend.total') }}</span>
-                                <span>{{ setting('currency_code') }}<span id="total">0</span></span>
+                                <span>{{ setting('currency_code') }}<span id="total">{{ $menuitems['totalPayAmount'] }}</span></span>
                             </li>
                         </ul>
                     </div>
@@ -490,6 +497,9 @@
         const stripeKey = "{{ setting('stripe_key') }}";
         const subtotal = "{{ $menuitems['subTotalAmount'] }}";
         const couponAmount = "{{ $menuitems['coupon_amount'] }}";
+        const taxAmount = "{{ $menuitems['tax_amount'] ?? 0 }}";
+        const serviceFeeAmount = "{{ $menuitems['service_fee_amount'] ?? 0 }}";
+        const totalPayAmount = "{{ $menuitems['totalPayAmount'] }}";
         const locationLat = parseFloat("{{ $restaurant->lat }}");
         const locationLong = parseFloat("{{ $restaurant->long }}");
         const delivery_type = "{{ $menuitems['delivery_type'] }}";

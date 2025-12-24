@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Livewire;
 
 use App\Models\MenuItem;
@@ -23,7 +24,7 @@ class ShowCart extends Component
 
     public function submit($restaurant_id, $menu_id)
     {
-
+        // Allow multi-restaurant cart - store current restaurant for reference
         session()->put('session_cart_restaurant_id', $restaurant_id);
         session()->put('session_cart_restaurant', $this->restaurant->slug);
 

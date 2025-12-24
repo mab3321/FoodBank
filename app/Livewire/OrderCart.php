@@ -39,20 +39,69 @@ class OrderCart extends Component
 
     protected $listeners = ['addCart'];
 
-    public function mount()
+    /**
+     * Hydrate method - called every time the component is hydrated from a request
+     * This ensures cart is always loaded from session
+     */
+    public function hydrate()
     {
-        $restaurant  = Restaurant::find(session()->get('session_cart_restaurant_id'));
-        if (isset($restaurant)) {
-            if ($restaurant->pickup_status == DeliveryStatus::ENABLE && $restaurant->delivery_status == DeliveryStatus::DISABLE) {
+        // CRITICAL: Always reload cart from session when component hydrates
+        $sessionCart = session()->get('cart');
+        if (!blank($sessionCart) && is_array($sessionCart)) {
+            $this->carts = $sessionCart;
+        } elseif (!isset($this->carts['items'])) {
+            // Ensure items array exists
+            $this->carts = ['items' => []];
+        }
+    }
+
+    public function mount($restaurant = null)
+    {
+        // Accept restaurant from parent component but don't let it clear the cart
+        if ($restaurant) {
+            $this->restaurant = $restaurant;
+            // Update session to track current restaurant view (but don't clear cart)
+            session()->put('session_cart_restaurant_id', $restaurant->id);
+            session()->put('session_cart_restaurant', $restaurant->slug);
+        } else {
+            // Get the last accessed restaurant or first restaurant from cart items
+            $restaurantId = session()->get('session_cart_restaurant_id');
+            $existingCart = session()->get('cart');
+
+            // If no restaurant in session, try to get from first cart item
+            if (!$restaurantId && !blank($existingCart) && !blank($existingCart['items'])) {
+                $firstItem = reset($existingCart['items']);
+                $restaurantId = $firstItem['restaurant_id'] ?? null;
+                if ($restaurantId) {
+                    session()->put('session_cart_restaurant_id', $restaurantId);
+                }
+            }
+
+            $this->restaurant = Restaurant::find($restaurantId);
+        }
+
+        // Set delivery options based on current restaurant being viewed
+        if ($this->restaurant) {
+            if ($this->restaurant->pickup_status == DeliveryStatus::ENABLE && $this->restaurant->delivery_status == DeliveryStatus::DISABLE) {
                 $this->delivery_charge = 0;
                 $this->delivery_type = true;
-            } elseif ($restaurant->pickup_status == DeliveryStatus::DISABLE && $restaurant->delivery_status == DeliveryStatus::DISABLE) {
+            } elseif ($this->restaurant->pickup_status == DeliveryStatus::DISABLE && $this->restaurant->delivery_status == DeliveryStatus::DISABLE) {
                 $this->isActiveCheckout = false;
             }
         }
 
-        $this->carts = session()->get('cart');
-        if (!blank($this->carts)) {
+        // CRITICAL: Load cart from session - DON'T clear it
+        // This must happen EVERY time the component mounts
+        $sessionCart = session()->get('cart');
+        if (!blank($sessionCart) && is_array($sessionCart)) {
+            $this->carts = $sessionCart;
+        } else {
+            // Initialize empty cart structure if nothing in session
+            $this->carts = ['items' => []];
+        }
+
+        // Recalculate totals if cart has items
+        if (!blank($this->carts) && isset($this->carts['items']) && !empty($this->carts['items'])) {
             $this->totalCartAmount();
         }
     }
@@ -67,23 +116,66 @@ class OrderCart extends Component
 
     public function render()
     {
-        return view('livewire.order-cart');
+        // Group cart items by restaurant for multi-restaurant display
+        $groupedItems = [];
+        if (!blank($this->carts) && !blank($this->carts['items'])) {
+            foreach ($this->carts['items'] as $key => $item) {
+                $restaurantId = $item['restaurant_id'];
+                if (!isset($groupedItems[$restaurantId])) {
+                    $restaurant = Restaurant::find($restaurantId);
+                    $groupedItems[$restaurantId] = [
+                        'restaurant' => $restaurant,
+                        'items' => []
+                    ];
+                }
+                $groupedItems[$restaurantId]['items'][$key] = $item;
+            }
+        }
+
+        // Ensure we have a restaurant for the view (use first from grouped items or stored one)
+        $restaurant = $this->restaurant;
+        if (!$restaurant && !empty($groupedItems)) {
+            $firstGroup = reset($groupedItems);
+            $restaurant = $firstGroup['restaurant'];
+        }
+
+        // If still no restaurant, try to get from session
+        if (!$restaurant) {
+            $restaurant = Restaurant::find(session()->get('session_cart_restaurant_id'));
+        }
+
+        return view('livewire.order-cart', [
+            'groupedItems' => $groupedItems,
+            'restaurant' => $restaurant
+        ]);
     }
 
     public function addCart($item)
     {
+        // Ensure carts array is properly initialized
+        if (!is_array($this->carts)) {
+            $this->carts = [];
+        }
+
+        // Ensure items array exists
+        if (!isset($this->carts['items']) || !is_array($this->carts['items'])) {
+            $this->carts['items'] = [];
+        }
+
         $status = true;
-        if (!blank($this->carts) && count($this->carts['items']) != 0) {
+
+        // Check if item already exists in cart (same item with same variation)
+        if (!empty($this->carts['items'])) {
             foreach ($this->carts['items'] as $key => $cart) {
-                if ($item['id'] == $this->carts['items'][$key]['id'] && $item['variationID'] == $this->carts['items'][$key]['variationID']) {
+                if ($item['id'] == $cart['id'] && $item['variationID'] == $cart['variationID']) {
                     $this->carts['items'][$key]['qty'] += $item['qty'];
                     $status = false;
-                } elseif ($item['id'] == $this->carts['items'][$key]['id']) {
-                    $this->carts['items'][$key]['qty'] += $item['qty'];
-                    $status = false;
+                    break;
                 }
             }
         }
+
+        // If item not found, add as new item
         if ($status) {
             $this->carts['items'][] = $item;
         }
@@ -122,12 +214,24 @@ class OrderCart extends Component
         $this->totalAmount = 0;
         $this->totalQty = 0;
         $this->subTotalAmount = 0;
+
         if (!blank($this->carts['items'])) {
+            // Group items by restaurant to calculate tax/service fee per restaurant
+            $restaurantTotals = [];
+
             foreach ($this->carts['items'] as $key => $cart) {
                 $this->totalItem += 1;
                 $this->totalQty += $cart['qty'];
-                $this->totalAmount += $cart['price'] * $cart['qty'];
-                $this->carts['items'][$key]['totalPrice'] =  $cart['price'] * $cart['qty'];
+                $itemTotal = $cart['price'] * $cart['qty'];
+                $this->totalAmount += $itemTotal;
+                $this->carts['items'][$key]['totalPrice'] = $itemTotal;
+
+                // Group by restaurant for tax calculation
+                $restaurantId = $cart['restaurant_id'];
+                if (!isset($restaurantTotals[$restaurantId])) {
+                    $restaurantTotals[$restaurantId] = 0;
+                }
+                $restaurantTotals[$restaurantId] += $itemTotal;
             }
 
             // Set delivery charge based on delivery type BEFORE tax calculation
@@ -138,27 +242,53 @@ class OrderCart extends Component
                 $this->delivery_charge = setting('basic_delivery_charge');
             }
 
-            // Calculate tax and service fee based on restaurant rates
-            $restaurant = Restaurant::find(session('session_cart_restaurant_id'));
-            $taxRate = $restaurant ? $restaurant->tax_rate : 0;
-            $serviceFeeRate = $restaurant ? $restaurant->service_fee_rate : 0;
+            // Calculate tax and service fee for EACH restaurant and sum them up
+            $totalTaxAmount = 0;
+            $totalServiceFeeAmount = 0;
+            $weightedTaxRate = 0;
+            $weightedServiceFeeRate = 0;
+
             $subtotalAfterDiscount = $this->totalAmount - $this->discountAmount;
-            $taxAmount = $taxRate > 0 ? round(($subtotalAfterDiscount * $taxRate) / 100, 2) : 0;
-            $serviceFeeAmount = $serviceFeeRate > 0 ? round(($subtotalAfterDiscount * $serviceFeeRate) / 100, 2) : 0;
+
+            foreach ($restaurantTotals as $restaurantId => $restaurantSubtotal) {
+                $restaurant = Restaurant::find($restaurantId);
+                if ($restaurant) {
+                    // Calculate proportion of this restaurant in total cart
+                    $proportion = $subtotalAfterDiscount > 0 ? ($restaurantSubtotal / $this->totalAmount) : 0;
+                    $restaurantSubtotalAfterDiscount = $subtotalAfterDiscount * $proportion;
+
+                    // Calculate tax for this restaurant's items
+                    if ($restaurant->tax_rate > 0) {
+                        $restaurantTax = round(($restaurantSubtotalAfterDiscount * $restaurant->tax_rate) / 100, 2);
+                        $totalTaxAmount += $restaurantTax;
+                        $weightedTaxRate += ($restaurant->tax_rate * $proportion);
+                    }
+
+                    // Calculate service fee for this restaurant's items
+                    if ($restaurant->service_fee_rate > 0) {
+                        $restaurantServiceFee = round(($restaurantSubtotalAfterDiscount * $restaurant->service_fee_rate) / 100, 2);
+                        $totalServiceFeeAmount += $restaurantServiceFee;
+                        $weightedServiceFeeRate += ($restaurant->service_fee_rate * $proportion);
+                    }
+                }
+            }
 
             $this->carts['couponID'] = $this->couponID;
             $this->subTotalAmount = $this->totalAmount;
             $this->carts['subTotalAmount'] = $this->totalAmount;
-            $this->totalAmount  = $this->totalAmount - $this->discountAmount;
             $this->carts['totalQty'] = $this->totalQty;
 
-            // Add tax and service fee information to cart
-            $this->carts['tax_rate'] = $taxRate;
-            $this->carts['tax_amount'] = $taxAmount;
-            $this->carts['service_fee_rate'] = $serviceFeeRate;
-            $this->carts['service_fee_amount'] = $serviceFeeAmount;
+            // Store weighted average rates for display and total amounts
+            $this->carts['tax_rate'] = round($weightedTaxRate, 2);
+            $this->carts['tax_amount'] = $totalTaxAmount;
+            $this->carts['service_fee_rate'] = round($weightedServiceFeeRate, 2);
+            $this->carts['service_fee_amount'] = $totalServiceFeeAmount;
 
-            $this->carts['totalPayAmount'] = $this->totalAmount + $this->delivery_charge + $taxAmount + $serviceFeeAmount;
+            // Calculate final amounts
+            $this->totalAmount = $subtotalAfterDiscount; // Amount after discount
+            $this->totalPayAmount = $this->totalAmount + $this->delivery_charge + $totalTaxAmount + $totalServiceFeeAmount;
+
+            $this->carts['totalPayAmount'] = $this->totalPayAmount;
             $this->carts['totalAmount'] = $this->totalAmount;
             $this->carts['delivery_charge'] = $this->delivery_charge;
 
@@ -168,7 +298,6 @@ class OrderCart extends Component
             $this->carts['coupon_amount'] = $this->discountAmount;
             $this->carts['delivery_type'] = $this->delivery_type;
             $this->carts['free_delivery'] = $this->free_delivery;
-            $this->totalPayAmount = $this->totalAmount + $this->delivery_charge + $taxAmount + $serviceFeeAmount;
         } else {
             $this->totalAmount = 0;
             $this->delivery_charge = 0;

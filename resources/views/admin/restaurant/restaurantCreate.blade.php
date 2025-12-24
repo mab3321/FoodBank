@@ -252,20 +252,20 @@
                                         @enderror
                                     </div>
 
-                                    <div class="form-col-12 sm:form-col-6 md:form-col-6">
-                                        <label class="db-field-title" for="tax_rate">{{ __('validation.attributes.tax_rate') }} (%)</label>
-                                        <input type="number" name="tax_rate" id="tax_rate" step="0.01" min="0" max="100" class="db-field-control @error('tax_rate') invalid @enderror" value="{{ old('tax_rate', '17.00') }}">
+                                    <div class="form-col-12 sm:form-col-12 md:form-col-12" style="background: yellow; border: 5px solid red; padding: 20px; margin: 20px 0;">
+                                        <label class="db-field-title" for="service_fee_rate" style="color: blue; font-size: 18px; font-weight: bold;">Service Fee Rate (%)</label>
+                                        <input type="number" name="service_fee_rate" id="service_fee_rate" step="0.01" min="0" max="100" class="db-field-control @error('service_fee_rate') invalid @enderror" value="{{ old('service_fee_rate', '0.00') }}" style="border: 3px solid blue; font-size: 16px;">
             
-                                        @error('tax_rate')
+                                        @error('service_fee_rate')
                                         <small class="db-field-alert">{{ $message }}</small>
                                         @enderror
                                     </div>
 
-                                    <div class="form-col-12 sm:form-col-6 md:form-col-6">
-                                        <label class="db-field-title" for="service_fee_rate">{{ __('validation.attributes.service_fee_rate') }} (%)</label>
-                                        <input type="number" name="service_fee_rate" id="service_fee_rate" step="0.01" min="0" max="100" class="db-field-control @error('service_fee_rate') invalid @enderror" value="{{ old('service_fee_rate', '0.00') }}">
+                                    <div class="form-col-12 sm:form-col-12 md:form-col-12">
+                                        <label class="db-field-title" for="tax_rate">{{ __('validation.attributes.tax_rate') }} (%)</label>
+                                        <input type="number" name="tax_rate" id="tax_rate" step="0.01" min="0" max="100" class="db-field-control @error('tax_rate') invalid @enderror" value="{{ old('tax_rate', '17.00') }}">
             
-                                        @error('service_fee_rate')
+                                        @error('tax_rate')
                                         <small class="db-field-alert">{{ $message }}</small>
                                         @enderror
                                     </div>
